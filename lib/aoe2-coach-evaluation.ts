@@ -359,7 +359,7 @@ export function evaluateAoE2Match(
   const mapName = norm(match.map ?? "");
   const modeName = norm([match.gameModeName, match.leaderboardName].filter(Boolean).join(" "));
   const speedName = norm(match.speedName ?? "");
-  const benchmarkApplicable = mapName.includes("arabia") && modeName.includes("1v1") && speedName.includes("normal") && match.speedFactor !== undefined;
+  const benchmarkApplicable = mapName.includes("arabia") && modeName.includes("1v1") && speedName.includes("normal");
   let benchmarkNote = "Sem benchmark: mapa, modo ou velocidade diferentes do cenário de referência 1v1 Arabia/Normal.";
   let feudalDisplay: string | null = null;
   let targetFeudalDisplay: string | null = null;
