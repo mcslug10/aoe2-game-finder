@@ -8,7 +8,7 @@ export async function GET() {
     const db = getAdminSupabase();
     const { data, error } = await db.from("rooms").select("id,host_id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at,players(nickname)").eq("status", "open").order("created_at", { ascending: false }).limit(100);
     if (error) throw error;
-    return NextResponse.json({ rooms: (data ?? []).map((r: any) => ({ id: r.id, title: r.title, mode: r.game_mode, map: r.map_name, elo: r.min_elo == null && r.max_elo == null ? "Any ELO" : `${r.min_elo ?? "?"}–${r.max_elo ?? "?"}`, region: r.region ?? "Any region", host: r.players?.nickname ?? "Jogador", players: "1/8" })) });
+    return NextResponse.json({ rooms: (data ?? []).map((r) => ({ id: r.id, title: r.title, mode: r.game_mode, map: r.map_name, elo: r.min_elo == null && r.max_elo == null ? "Any ELO" : `${r.min_elo ?? "?"}–${r.max_elo ?? "?"}`, region: r.region ?? "Any region", host: r.players?.nickname ?? "Jogador", players: "1/8" })) });
   } catch (error) { console.error("rooms GET", error); return NextResponse.json({ error: "Falha ao carregar salas." }, { status: 500 }); }
 }
 export async function POST(req: NextRequest) {
