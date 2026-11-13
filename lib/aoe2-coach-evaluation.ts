@@ -454,7 +454,7 @@ export function evaluateAoE2Match(
     });
   }
 
-  const alternatives = [...new Set(alternatives)];
+  const uniqueAlternatives = [...new Set(alternatives)];
   return {
     overallScore, overallLabel, confidence, coverage,
     strategy: {
@@ -462,7 +462,7 @@ export function evaluateAoE2Match(
       confidence: confidenceFromStrength(strategyStrength),
       reason: strategyReason,
       evidence,
-      alternatives,
+      alternatives: uniqueAlternatives,
     },
     categories,
     reaction: {
