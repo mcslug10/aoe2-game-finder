@@ -19,6 +19,7 @@ type MatchContext = {
   gameModeName?: string;
   speedName?: string;
   speedFactor?: number;
+  leaderboardName?: string;
   teams?: MatchTeam[];
 };
 
@@ -265,7 +266,7 @@ export function evaluateAoE2Match(
   }
 
   const villagerEvents = ownUnits.filter((item) => includesAny(item.unit, ["villager"])).sort((a, b) => a.at - b.at);
-  const earlyVillagers = villagerEvents.filter((item) => item.at <= 18 * 60);
+  const earlyGameSeconds = 15 * 60 / Math.max(1, match.speedFactor ?? 1.7);\n  const earlyVillagers = villagerEvents.filter((item) => item.at <= earlyGameSeconds);
   const villagerGaps: Array<{ from: number; to: number; gap: number }> = [];
   for (let i = 1; i < earlyVillagers.length; i++) {
     const previous = earlyVillagers[i - 1];
@@ -295,7 +296,7 @@ export function evaluateAoE2Match(
       .flatMap((team) => (team.players ?? []).map((player) => Number(player.profileId)));
   }
   const enemyProfiles = allPlayers.filter((player) => opponentIds.includes(Number(player.profileId)));
-  const pressureUnits = ["scout cavalry", "light cavalry", "archer", "crossbow", "skirmisher", "man at arms", "militia", "knight", "cavalier", "paladin", "camel", "eagle warrior", "ram", "mangonel", "scorpion", "longbowman"];
+  const pressureUnits = ["scout cavalry", "light cavalry", "archer", "crossbow", "man at arms", "militia", "knight", "cavalier", "paladin", "camel", "eagle warrior", "ram", "mangonel", "scorpion", "longbowman"];
   const enemyEvents = enemyProfiles.flatMap((player) => (player.queuedUnits ?? []).map((item) => ({
     ...item, at: seconds(item.timestamp), owner: player.name ?? "Adversário",
   }))).filter((item): item is QueueItem & { at: number; owner: string } =>
@@ -346,13 +347,13 @@ export function evaluateAoE2Match(
   ];
 
   const mapName = norm(match.map ?? "");
-  const modeName = norm(match.gameModeName ?? "");
+  const modeName = norm([match.gameModeName, match.leaderboardName].filter(Boolean).join(" "));
   const speedName = norm(match.speedName ?? "");
   const benchmarkApplicable = mapName.includes("arabia") && modeName.includes("1v1") && speedName.includes("normal") && match.speedFactor !== undefined;
   let benchmarkNote = "Sem benchmark: mapa, modo ou velocidade diferentes do cenário de referência 1v1 Arabia/Normal.";
   let feudalDisplay: string | null = null;
   let targetFeudalDisplay: string | null = null;
-  if (benchmarkApplicable && feudal !== null) {
+  if (benchmarkApplicable && feudal === null) {\n    const idx = categories.findIndex((item) => item.id === "timing");\n    categories[idx] = category("timing", "Timing das eras", null, 20, "A partida se encaixa no cenário de referência, mas o evento de avanço à Feudal não foi retornado.", "insufficient_data");\n  }\n  if (benchmarkApplicable && feudal !== null) {
     const speedFactor = match.speedFactor ?? 1;
     const inGameFeudal = feudal * speedFactor;
     feudalDisplay = clock(inGameFeudal);
