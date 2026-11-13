@@ -7,7 +7,7 @@ import time
 import zipfile
 from typing import Any
 
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from mgz.summary import Summary
 
@@ -328,7 +328,7 @@ def health():
 
 
 @app.post("/analyze")
-async def analyze(file: UploadFile = File(...), authorization: str | None = Header(default=None)):
+async def analyze(file: UploadFile = File(...), profile_id: int | None = Form(default=None), authorization: str | None = Header(default=None)):
     verify_token(authorization)
     filename = file.filename or "replay.aoe2record"
     raw = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -339,7 +339,7 @@ async def analyze(file: UploadFile = File(...), authorization: str | None = Head
     record = extract_record(raw, filename)
     if len(record) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="O replay extraído excede 100 MB.")
-    return analyze_record(record, None, filename)
+    return analyze_record(record, profile_id, filename)
 
 
 if __name__ == "__main__":
