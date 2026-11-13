@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, Castle, ExternalLink, Globe2, Lock, RefreshCw, Search, Swords, Users } from "lucide-react";
 
 type Language = "pt" | "en";
@@ -50,8 +51,8 @@ export default function BrowserPage() {
   const filteredCommunity = community.filter((room) => `${room.title} ${room.host} ${room.map}`.toLowerCase().includes(search.toLowerCase()));
   return <main className="shell browser-page">
     <header className="topbar browser-topbar">
-      <a className="brand" href="/"><span className="brand-mark"><Castle size={23}/></span><span>AOE2 <b>GAME FINDER</b><small>THE COMMUNITY MATCH HUB</small></span></a>
-      <a className="browser-back" href="/"><ArrowLeft size={15}/>{t.back}</a>
+      <Link className="brand" href="/"><span className="brand-mark"><Castle size={23}/></span><span>AOE2 <b>GAME FINDER</b><small>THE COMMUNITY MATCH HUB</small></span></Link>
+      <Link className="browser-back" href="/"><ArrowLeft size={15}/>{t.back}</Link>
       <label className="language-picker"><Globe2 size={14}/><select value={language} onChange={(event) => { const value = event.target.value as Language; setLanguage(value); localStorage.setItem("aoe2-language", value); }}><option value="pt">PT-BR</option><option value="en">English</option></select></label>
     </header>
     <section className="browser-hero panel">
@@ -81,10 +82,10 @@ export default function BrowserPage() {
     </section> : <section className="browser-results panel">
       <div className="browser-result-heading"><h2><Users size={18}/>{t.community}</h2><span>{community.length}</span></div>
       {filteredCommunity.map((room) => <article className="browser-lobby" key={room.id}>
-        <div className="browser-lobby-icon"><Castle size={22}/></div><div className="browser-lobby-main"><h3>{room.title}</h3><div className="browser-lobby-meta"><span>{room.mode}</span><span>{room.map}</span><span>{room.elo} ELO</span><span>{room.host}</span></div></div><div className="browser-lobby-actions"><a className="join-btn browser-join" href={`aoe2de://0/${encodeURIComponent(room.game_lobby_id ?? "")}`}>{t.join}<ExternalLink size={13}/></a><a className="browser-copy" href={`/?room=${encodeURIComponent(room.id)}#chat`}>{t.roomChat}</a></div>
+        <div className="browser-lobby-icon"><Castle size={22}/></div><div className="browser-lobby-main"><h3>{room.title}</h3><div className="browser-lobby-meta"><span>{room.mode}</span><span>{room.map}</span><span>{room.elo} ELO</span><span>{room.host}</span></div></div><div className="browser-lobby-actions"><a className="join-btn browser-join" href={`aoe2de://0/${encodeURIComponent(room.game_lobby_id ?? "")}`}>{t.join}<ExternalLink size={13}/></a><Link className="browser-copy" href={`/?room=${encodeURIComponent(room.id)}#chat`}>{t.roomChat}</Link></div>
       </article>)}
       {!filteredCommunity.length && <div className="empty">{t.noCommunity}</div>}
     </section>}
-    <footer><a className="brand footer-brand" href="/"><span className="brand-mark"><Castle size={18}/></span><span>AOE2 <b>GAME FINDER</b><small>FIND YOUR NEXT GG.</small></span></a><span>COMMUNITY PROJECT · NOT AFFILIATED WITH MICROSOFT</span></footer>
+    <footer><Link className="brand footer-brand" href="/"><span className="brand-mark"><Castle size={18}/></span><span>AOE2 <b>GAME FINDER</b><small>FIND YOUR NEXT GG.</small></span></Link><span>COMMUNITY PROJECT · NOT AFFILIATED WITH MICROSOFT</span></footer>
   </main>;
 }
