@@ -677,3 +677,596 @@ body:has(.coach-page):before {
   .coach-page .coach-report-title h2 { font-size: 20px; }
   .coach-page .coach-rating-panel { padding: 16px; }
 }
+
+
+/* Game Finder + Lobby Browser: unified Age of Empires II parchment UI */
+body:has(.game-ui),
+body:has(.browser-page:not(.coach-page)) {
+  background:
+    repeating-linear-gradient(90deg, rgba(16,9,5,.22) 0 2px, transparent 2px 34px, rgba(255,211,145,.035) 35px 37px, transparent 37px 72px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 8px),
+    linear-gradient(90deg, #1b110b, #392416 12%, #21150d 50%, #392416 88%, #1b110b);
+}
+body:has(.game-ui):before,
+body:has(.browser-page:not(.coach-page)):before {
+  opacity: .18;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 28px, rgba(226,176,105,.08) 29px 30px),
+    repeating-linear-gradient(90deg, transparent 0 58px, rgba(0,0,0,.16) 59px 60px);
+  background-size: auto;
+}
+
+/* Main Game Finder page */
+.game-ui {
+  --ui-ink: #492e1e;
+  --ui-muted: #76583d;
+  --ui-red: #74151b;
+  --ui-red-light: #a12820;
+  --ui-gold: #bd914e;
+  max-width: 1500px;
+  padding: 0 30px 30px;
+  color: var(--ui-ink);
+  background:
+    radial-gradient(ellipse at 50% 14%, rgba(255,249,230,.52), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(108,73,43,.045) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.075) 0 2px, transparent 2px 9px),
+    linear-gradient(135deg, #d5b58a, #e8d0a8 45%, #d7b78f);
+  border-left: 9px solid #4a2e1b;
+  border-right: 9px solid #4a2e1b;
+  box-shadow: 0 0 0 2px #a47a48, 0 0 0 7px #29190f, 0 18px 55px #000b;
+  min-height: 100vh;
+}
+.game-ui:before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 2px solid rgba(118,75,39,.65);
+  box-shadow: inset 0 0 0 3px rgba(246,222,179,.48), inset 0 0 0 5px rgba(118,75,39,.25);
+  pointer-events: none;
+  z-index: 0;
+}
+.game-ui > * { position: relative; z-index: 1; }
+.game-ui .topbar {
+  margin: 0 -30px 18px;
+  padding: 0 38px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,205,130,.045) 0 2px, transparent 2px 42px),
+    linear-gradient(180deg, #5b3921, #382214 62%, #25160e);
+  border-bottom: 3px solid #a77a3e;
+  box-shadow: inset 0 1px rgba(255,238,197,.25), inset 0 -5px 0 rgba(0,0,0,.18), 0 5px 12px #3a211544;
+}
+.game-ui .topbar:after {
+  background: linear-gradient(90deg, transparent, #e0bc78, #f2d99e, #e0bc78, transparent);
+  bottom: -4px;
+}
+.game-ui .brand { color: #f6e5bd; text-shadow: 0 2px 3px #160c06; }
+.game-ui .brand b { color: #e7be69; }
+.game-ui .brand small { color: #c9a77b; }
+.game-ui .brand-mark {
+  color: #f2d58d;
+  background: linear-gradient(145deg, #784b27, #321d11);
+  border-color: #d2a75d;
+  box-shadow: inset 0 0 0 3px #3a2415, inset 0 0 0 4px #b58a4c, 0 2px 7px #160b06;
+}
+.game-ui .topbar nav { gap: clamp(12px, 2vw, 28px); color: #f1dfbd; font-size: 12px; }
+.game-ui .topbar nav a { font-family: 'Cinzel', Georgia, serif; font-size: 11px; font-weight: 700; }
+.game-ui .topbar nav a.active,
+.game-ui .topbar nav a:hover { color: #f2d38a; }
+.game-ui .topbar nav a.active:after { background: #e4bb68; height: 2px; }
+.game-ui .online { color: #ead5aa; font-size: 10px; }
+.game-ui .nick-button,
+.game-ui .language-picker {
+  color: #f5e1b8;
+  background: linear-gradient(180deg, #704629, #3b2417);
+  border: 1px solid #bc9050;
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 0 2px 6px #160b06;
+  font-size: 11px;
+}
+.game-ui .language-picker select { color: #f5e1b8; font-size: 11px; }
+.game-ui .language-picker option { background: #4a2e1b; color: #f5e1b8; }
+
+.game-ui .hero {
+  border: 3px solid #8e6639;
+  box-shadow: inset 0 0 0 4px rgba(255,231,187,.4), inset 0 0 0 6px rgba(85,51,27,.42), 0 9px 20px rgba(58,34,17,.28);
+  margin-top: 0;
+}
+.game-ui .hero:before,
+.game-ui .hero:after { color: #f0d18a; }
+.game-ui .hero-shade {
+  background:
+    linear-gradient(90deg, rgba(30,16,9,.9), rgba(39,22,12,.69) 45%, rgba(36,20,11,.15) 100%),
+    linear-gradient(0deg, rgba(20,12,7,.56), transparent 54%);
+}
+.game-ui .hero-content { padding: 60px 6%; }
+.game-ui .hero .eyebrow { color: #f4d88f; font-size: 11px; letter-spacing: 2px; }
+.game-ui .hero h1 {
+  color: #f6e5c2;
+  font: 700 clamp(38px, 5vw, 66px)/1.08 'Cinzel', Georgia, serif;
+  letter-spacing: .2px;
+  text-transform: none;
+  text-shadow: 0 2px 0 #5b2f1a, 0 4px 10px #160b06;
+}
+.game-ui .hero h1 em { color: #edc36d; }
+.game-ui .hero-content p { color: #f0e1c5; font-size: 15px; line-height: 1.8; }
+.game-ui .hero-actions { gap: 11px; margin-top: 27px; }
+.game-ui .primary-btn,
+.game-ui .create-btn,
+.game-ui .join-btn,
+.game-ui .discord-btn,
+.game-ui .nick-entry button,
+.game-ui .chat-compose button {
+  color: #f9e7bf;
+  background: linear-gradient(180deg, #9b211b, #650d12 58%, #4b080e);
+  border: 1px solid #d1a24f;
+  box-shadow: inset 0 1px rgba(255,239,190,.38), inset 0 -2px rgba(34,3,6,.4), 0 2px 5px rgba(67,28,17,.28);
+  text-shadow: 0 1px 2px #31070a;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 11px;
+  letter-spacing: .25px;
+}
+.game-ui .primary-btn:hover,
+.game-ui .create-btn:hover,
+.game-ui .join-btn:hover,
+.game-ui .discord-btn:hover,
+.game-ui .nick-entry button:hover,
+.game-ui .chat-compose button:hover {
+  color: #fff0c9;
+  border-color: #f0d18a;
+  background: linear-gradient(180deg, #b52c22, #7d1018 58%, #59080f);
+  filter: brightness(1.04);
+}
+.game-ui .ghost-btn {
+  color: #583820;
+  background: linear-gradient(180deg, #f2dfbd, #d8ba8e);
+  border: 1px solid #9a7043;
+  box-shadow: inset 0 1px #fff8, inset 0 -2px #b28a5c, 0 3px 8px #1c0e0855;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 11px;
+}
+.game-ui .hero-stats { gap: 22px; }
+.game-ui .hero-stats div { border-color: rgba(240,211,153,.7); }
+.game-ui .hero-stats strong { color: #f2d38a; font: 700 20px 'Cinzel', Georgia, serif; }
+.game-ui .hero-stats span { color: #f3e1c0; font-size: 10px; }
+
+.game-ui .intro-row { padding: 35px 4px 25px; }
+.game-ui .intro-row .eyebrow { color: #855b35; text-shadow: none; }
+.game-ui .intro-row h2,
+.game-ui .leader-heading h2,
+.game-ui .discord-copy h2 {
+  color: #542d1d;
+  font: 700 28px 'Cinzel', Georgia, serif;
+  text-shadow: 0 1px 0 rgba(255,246,225,.65);
+}
+.game-ui .intro-row p { color: #77583d; font-size: 14px; line-height: 1.7; }
+.game-ui .feature-pills span {
+  color: #62432b;
+  background: rgba(255,246,225,.52);
+  border: 1px solid #a98254;
+  box-shadow: inset 0 1px rgba(255,255,255,.45), 0 2px 5px rgba(72,43,22,.1);
+  font-size: 12px;
+  padding: 10px 12px;
+}
+.game-ui .feature-pills svg { color: #8b3b25; }
+
+.game-ui .panel {
+  color: #492e1e;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(255,250,231,.5), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(100,64,35,.04) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #ead5b2, #d8bb94);
+  border: 2px solid #8c633a;
+  box-shadow: inset 0 0 0 3px rgba(250,231,194,.65), inset 0 0 0 5px rgba(112,72,39,.18), 0 7px 17px rgba(57,34,17,.24);
+}
+.game-ui .panel:before { inset: 8px; border-color: rgba(119,77,39,.3); }
+.game-ui .rooms-panel { padding: 24px; }
+.game-ui .panel-heading h3,
+.game-ui .chat-head h3,
+.game-ui .modal h3 {
+  color: #542d1d;
+  font: 700 21px 'Cinzel', Georgia, serif;
+  text-shadow: 0 1px 0 rgba(255,246,225,.6);
+}
+.game-ui .panel-heading .eyebrow,
+.game-ui .chat-head .eyebrow { color: #855a35; text-shadow: none; }
+.game-ui .count {
+  color: #f7e2b8;
+  background: linear-gradient(180deg, #88452a, #572419);
+  border: 1px solid #b98a4b;
+  font-size: 12px;
+}
+.game-ui .filters { gap: 10px; }
+.game-ui .filters label {
+  color: #874126;
+  background: linear-gradient(180deg, #f5e6ca, #e4cba5);
+  border: 1px solid #a98254;
+  box-shadow: inset 0 1px rgba(255,255,255,.45);
+}
+.game-ui .filters input,
+.game-ui .filters select {
+  color: #4b2f1f;
+  font-size: 13px;
+  padding: 12px 0;
+}
+.game-ui .filters input::placeholder { color: #987859; }
+.game-ui .filters select option { color: #4b2f1f; background: #f0dfc1; }
+.game-ui .room { border-top-color: rgba(130,88,49,.28); padding: 16px 9px; }
+.game-ui .room:hover { background: rgba(255,249,232,.62); }
+.game-ui .room-icon,
+.game-ui .leader-emblem {
+  color: #f4d58f;
+  background: linear-gradient(145deg, #853d25, #4d2118);
+  border: 1px solid #bd8c4c;
+  box-shadow: inset 0 0 0 3px rgba(255,220,155,.12), 0 2px 4px rgba(68,38,19,.22);
+}
+.game-ui .room-title { color: #4d2b1c; font-size: 15px; }
+.game-ui .room-meta { color: #77583d; font-size: 12px; gap: 12px; }
+.game-ui .room-meta span:first-child { color: #8a241d; }
+.game-ui .room-host { color: #806144; font-size: 11px; }
+.game-ui .room-host b { color: #542d1d; }
+.game-ui .room-players strong { color: #8b241d; font: 700 23px 'Cinzel', Georgia, serif; }
+.game-ui .room-players small { color: #805f43; font-size: 10px; }
+.game-ui .join-btn { padding: 10px 13px; white-space: nowrap; }
+
+.game-ui .chat-panel { background: linear-gradient(145deg, #ead5b2, #d8bb94); }
+.game-ui .chat-head {
+  background: linear-gradient(180deg, rgba(255,248,226,.68), rgba(224,199,162,.35));
+  border-bottom: 1px solid #a98254;
+}
+.game-ui .chat-head h3 { display: flex; align-items: center; gap: 9px; }
+.game-ui .live-dot { background: #718447; box-shadow: 0 0 8px #718447; }
+.game-ui .room-chat-title { color: #855a35; font-size: 12px; }
+.game-ui .chat-language {
+  color: #754126;
+  background: rgba(255,246,225,.55);
+  border: 1px solid #a98254;
+  font-size: 11px;
+}
+.game-ui .chat-language button { color: #7b271e; font: 700 11px 'Cinzel', Georgia, serif; }
+.game-ui .chat-body { background: rgba(255,246,225,.18); }
+.game-ui .chat-message { gap: 11px; }
+.game-ui .avatar {
+  color: #f4d58f;
+  background: linear-gradient(145deg, #853d25, #4d2118);
+  border: 1px solid #bd8c4c;
+}
+.game-ui .message-top b { color: #7d291e; font-size: 13px; }
+.game-ui .message-top time { color: #806144; font-size: 10px; }
+.game-ui .message-content p { color: #553924; font-size: 13px; line-height: 1.65; }
+.game-ui .chat-message.mine .message-content p { color: #4a2c1a; }
+.game-ui .nick-gate,
+.game-ui .chat-compose {
+  background: linear-gradient(180deg, #e5cba4, #d3b48b);
+  border-top: 1px solid #a98254;
+}
+.game-ui .nick-gate label { color: #61432b; font-size: 12px; }
+.game-ui .nick-entry input,
+.game-ui .chat-compose input {
+  color: #492e1e;
+  background: linear-gradient(180deg, #f5e5c8, #e8cfaa);
+  border: 1px solid #8e6842;
+  box-shadow: inset 0 2px 5px rgba(81,49,23,.13), 0 1px 0 rgba(255,255,255,.5);
+  font-size: 13px;
+}
+.game-ui .nick-entry input::placeholder,
+.game-ui .chat-compose input::placeholder { color: #987859; }
+.game-ui .nick-gate small,
+.game-ui .chat-compose small { color: #806144; font-size: 10px; line-height: 1.5; }
+
+.game-ui .leaderboard { padding: 24px; }
+.game-ui .leader-heading h2 { margin: 0 0 5px; }
+.game-ui .leader-heading p { color: #77583d; font-size: 13px; }
+.game-ui .leader-row {
+  border-top: 1px solid rgba(130,88,49,.26);
+  color: #4b2f1f;
+  font-size: 13px;
+  padding: 11px 12px;
+}
+.game-ui .leader-row b { color: #4d2b1c; }
+.game-ui .leader-row.rank-1 { border: 1px solid #b98a4b; background: rgba(236,210,158,.45); }
+.game-ui .rank-medal { color: #835126; }
+.game-ui .leader-count { color: #855d3a; font-size: 11px; }
+.game-ui .leader-empty { color: #76583d; font-size: 13px; }
+.game-ui .bottom-info > div {
+  background: linear-gradient(145deg, #ead5b2, #d8bb94);
+  border: 1px solid #a98254;
+  box-shadow: inset 0 0 0 3px rgba(255,245,218,.4), 0 4px 12px rgba(57,34,17,.15);
+}
+.game-ui .bottom-info svg { color: #873b25; }
+.game-ui .bottom-info b { color: #542d1d; font: 700 13px 'Cinzel', Georgia, serif; }
+.game-ui .bottom-info small { color: #77583d; font-size: 12px; line-height: 1.65; }
+.game-ui .discord-banner {
+  background: linear-gradient(135deg, #ead5b2, #d8bb94);
+  border: 2px solid #8c633a;
+  box-shadow: inset 0 0 0 3px rgba(250,231,194,.45), 0 7px 17px rgba(57,34,17,.2);
+}
+.game-ui .discord-banner:before { border-color: rgba(119,77,39,.24); }
+.game-ui .discord-emblem { color: #f4d58f; background: linear-gradient(145deg, #853d25, #4d2118); border-color: #bd8c4c; }
+.game-ui .discord-copy .eyebrow { color: #855a35; text-shadow: none; }
+.game-ui .discord-copy h2 { font-size: 21px; margin: 5px 0; }
+.game-ui .discord-copy p { color: #77583d; font-size: 13px; line-height: 1.65; }
+.game-ui footer { color: #795a3f; border-top: 1px solid #a17a4b; }
+.game-ui .footer-brand { color: #4d2b1c; }
+
+/* Main-page create-lobby modal */
+.game-ui .modal {
+  color: #4b2f1f;
+  background:
+    repeating-linear-gradient(0deg, rgba(112,73,38,.035) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #f0dfc1, #d9bd96);
+  border: 2px solid #9c7347;
+  box-shadow: inset 0 0 0 4px rgba(255,244,216,.55), inset 0 0 0 6px rgba(115,75,41,.12), 0 20px 70px #0009;
+}
+.game-ui .modal:before { border-color: rgba(115,75,41,.22); }
+.game-ui .modal label { color: #62432b; font-size: 12px; }
+.game-ui .modal input,
+.game-ui .modal select {
+  color: #492e1e;
+  background: linear-gradient(180deg, #f5e5c8, #e8cfaa);
+  border: 1px solid #8e6842;
+  font-size: 13px;
+}
+.game-ui .modal select option { background: #f0dfc1; color: #492e1e; }
+.game-ui .modal .eyebrow { color: #855a35; text-shadow: none; }
+.game-ui .modal h3 { margin: 5px 0 0; }
+.game-ui .modal-warning { color: #813923; font-size: 13px; }
+.game-ui .icon-button { color: #f4dfb6; background: linear-gradient(#8b4028,#511f17); border-color: #bd8c4c; }
+.game-ui .inline-error { color: #81281f; background: #f1d0bb; border-color: #bd7254; font-size: 12px; }
+
+/* Standalone lobby browser page */
+.browser-page:not(.coach-page) {
+  --ui-ink: #492e1e;
+  max-width: 1480px;
+  padding: 0 30px 28px;
+  color: var(--ui-ink);
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(255,249,230,.52), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(108,73,43,.045) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.075) 0 2px, transparent 2px 9px),
+    linear-gradient(135deg, #d5b58a, #e8d0a8 45%, #d7b78f);
+  border-left: 9px solid #4a2e1b;
+  border-right: 9px solid #4a2e1b;
+  box-shadow: 0 0 0 2px #a47a48, 0 0 0 7px #29190f, 0 18px 55px #000b;
+  min-height: 100vh;
+}
+.browser-page:not(.coach-page):before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 2px solid rgba(118,75,39,.65);
+  box-shadow: inset 0 0 0 3px rgba(246,222,179,.48), inset 0 0 0 5px rgba(118,75,39,.25);
+  pointer-events: none;
+  z-index: 0;
+}
+.browser-page:not(.coach-page) > * { position: relative; z-index: 1; }
+.browser-page:not(.coach-page) .browser-topbar {
+  margin: 0 -30px 22px;
+  padding: 0 40px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,205,130,.045) 0 2px, transparent 2px 42px),
+    linear-gradient(180deg, #5b3921, #382214 62%, #25160e);
+  border-bottom: 3px solid #a77a3e;
+  box-shadow: inset 0 1px rgba(255,238,197,.25), inset 0 -5px 0 rgba(0,0,0,.18), 0 5px 12px #3a211544;
+}
+.browser-page:not(.coach-page) .browser-topbar:after {
+  background: linear-gradient(90deg, transparent, #e0bc78, #f2d99e, #e0bc78, transparent);
+  bottom: -4px;
+}
+.browser-page:not(.coach-page) .brand { color: #f6e5bd; text-shadow: 0 2px 3px #160c06; }
+.browser-page:not(.coach-page) .brand b { color: #e7be69; }
+.browser-page:not(.coach-page) .brand small { color: #c9a77b; }
+.browser-page:not(.coach-page) .brand-mark {
+  color: #f2d58d;
+  background: linear-gradient(145deg, #784b27, #321d11);
+  border-color: #d2a75d;
+  box-shadow: inset 0 0 0 3px #3a2415, inset 0 0 0 4px #b58a4c, 0 2px 7px #160b06;
+}
+.browser-page:not(.coach-page) .browser-back { color: #f2d79e; font-size: 12px; }
+.browser-page:not(.coach-page) .language-picker {
+  color: #f5e1b8;
+  background: linear-gradient(180deg, #704629, #3b2417);
+  border: 1px solid #bc9050;
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 0 2px 6px #160b06;
+}
+.browser-page:not(.coach-page) .language-picker select { color: #f5e1b8; font-size: 12px; }
+.browser-page:not(.coach-page) .language-picker option { color: #492e1e; background: #f0dfc1; }
+.browser-page:not(.coach-page) .panel {
+  color: #492e1e;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(255,250,231,.5), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(100,64,35,.04) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #ead5b2, #d8bb94);
+  border: 2px solid #8c633a;
+  box-shadow: inset 0 0 0 3px rgba(250,231,194,.65), inset 0 0 0 5px rgba(112,72,39,.18), 0 7px 17px rgba(57,34,17,.24);
+}
+.browser-page:not(.coach-page) .panel:before { inset: 8px; border-color: rgba(119,77,39,.3); }
+.browser-page:not(.coach-page) .browser-hero { padding: 29px 34px; }
+.browser-page:not(.coach-page) .browser-hero .eyebrow { color: #855a35; text-shadow: none; }
+.browser-page:not(.coach-page) .browser-hero h1 {
+  color: #542d1d;
+  font: 700 clamp(32px, 4.5vw, 52px)/1.1 'Cinzel', Georgia, serif;
+  text-transform: none;
+  text-shadow: 0 1px 0 rgba(255,246,225,.65);
+  margin: 10px 0;
+}
+.browser-page:not(.coach-page) .browser-hero > p { color: #76583d; font-size: 15px; line-height: 1.7; }
+.browser-page:not(.coach-page) .browser-tabs { gap: 9px; margin: 22px 0 16px; }
+.browser-page:not(.coach-page) .browser-tabs button,
+.browser-page:not(.coach-page) .create-btn,
+.browser-page:not(.coach-page) .browser-copy {
+  color: #f9e7bf;
+  background: linear-gradient(180deg, #9b211b, #650d12 58%, #4b080e);
+  border: 1px solid #d1a24f;
+  box-shadow: inset 0 1px rgba(255,239,190,.38), inset 0 -2px rgba(34,3,6,.4), 0 2px 5px rgba(67,28,17,.28);
+  text-shadow: 0 1px 2px #31070a;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 12px;
+}
+.browser-page:not(.coach-page) .browser-tabs button.selected,
+.browser-page:not(.coach-page) .browser-tabs button:hover {
+  color: #fff0c9;
+  background: linear-gradient(180deg, #b52c22, #7d1018 58%, #59080f);
+  border-color: #f0d18a;
+}
+.browser-page:not(.coach-page) .browser-tabs button span {
+  color: #f9e7bf;
+  background: rgba(38,7,8,.35);
+  border: 1px solid rgba(231,191,114,.55);
+  font: 700 11px 'DM Sans', sans-serif;
+}
+.browser-page:not(.coach-page) .browser-search {
+  color: #874126;
+  background: linear-gradient(180deg, #f5e6ca, #e4cba5);
+  border: 1px solid #a98254;
+  box-shadow: inset 0 1px rgba(255,255,255,.45);
+}
+.browser-page:not(.coach-page) .browser-search input {
+  color: #492e1e;
+  font-size: 14px;
+}
+.browser-page:not(.coach-page) .browser-search input::placeholder { color: #987859; }
+.browser-page:not(.coach-page) .browser-results { padding: 23px 25px; }
+.browser-page:not(.coach-page) .browser-result-heading {
+  border-bottom: 1px solid rgba(130,88,49,.35);
+  padding-bottom: 16px;
+}
+.browser-page:not(.coach-page) .browser-result-heading h2 {
+  color: #542d1d;
+  font: 700 23px 'Cinzel', Georgia, serif;
+}
+.browser-page:not(.coach-page) .browser-result-heading > span { color: #76583d; font-size: 12px; }
+.browser-page:not(.coach-page) .browser-lobby {
+  gap: 16px;
+  padding: 18px 10px;
+  border-bottom: 1px solid rgba(130,88,49,.28);
+}
+.browser-page:not(.coach-page) .browser-lobby:hover { background: rgba(255,249,232,.58); }
+.browser-page:not(.coach-page) .browser-lobby-icon {
+  color: #f4d58f;
+  background: linear-gradient(145deg, #853d25, #4d2118);
+  border: 1px solid #bd8c4c;
+  box-shadow: inset 0 0 0 3px rgba(255,220,155,.12), 0 2px 4px rgba(68,38,19,.22);
+  width: 48px;
+  height: 48px;
+}
+.browser-page:not(.coach-page) .browser-lobby-main h3 {
+  color: #4d2b1c;
+  font: 700 19px 'Cinzel', Georgia, serif;
+  margin-bottom: 7px;
+}
+.browser-page:not(.coach-page) .browser-lobby-meta { color: #76583d; font-size: 12px; gap: 13px; }
+.browser-page:not(.coach-page) .browser-lobby-meta span:first-child { color: #8a241d; font-weight: 700; }
+.browser-page:not(.coach-page) .browser-player-list { color: #76583d; font-size: 12px; line-height: 1.6; }
+.browser-page:not(.coach-page) .browser-lobby-count b { color: #8b241d; font: 700 21px 'Cinzel', Georgia, serif; }
+.browser-page:not(.coach-page) .browser-lobby-count small { color: #806144; font-size: 11px; }
+.browser-page:not(.coach-page) .browser-lobby-actions { min-width: 138px; }
+.browser-page:not(.coach-page) .browser-join { font-size: 11px; padding: 11px 12px; }
+.browser-page:not(.coach-page) .browser-copy { font-size: 10px; padding: 9px 11px; }
+.browser-page:not(.coach-page) .browser-footnote,
+.browser-page:not(.coach-page) .browser-updated,
+.browser-page:not(.coach-page) .browser-notice { color: #76583d; font-size: 12px; line-height: 1.7; }
+.browser-page:not(.coach-page) .browser-notice { color: #8a241d; }
+.browser-page:not(.coach-page) .browser-updated { color: #806144; }
+.browser-page:not(.coach-page) .empty {
+  color: #76583d;
+  background: rgba(255,246,225,.48);
+  border: 1px dashed #a67b4b;
+  font-size: 14px;
+}
+.browser-page:not(.coach-page) footer { color: #795a3f; border-top: 1px solid #a17a4b; }
+.browser-page:not(.coach-page) .footer-brand { color: #4d2b1c; }
+
+/* Responsive readability and spacing for both game surfaces */
+@media (max-width: 950px) {
+  .game-ui { padding-left: 20px; padding-right: 20px; }
+  .game-ui .topbar { margin-left: -20px; margin-right: -20px; padding: 0 22px; }
+  .game-ui .topbar nav { gap: 12px; }
+  .game-ui .topbar nav a { font-size: 10px; }
+  .game-ui .intro-row { gap: 14px; }
+}
+@media (max-width: 760px) {
+  .game-ui,
+  .browser-page:not(.coach-page) {
+    padding: 0 13px 22px;
+    border-left-width: 5px;
+    border-right-width: 5px;
+  }
+  .game-ui .topbar,
+  .browser-page:not(.coach-page) .browser-topbar {
+    margin-left: -13px;
+    margin-right: -13px;
+    padding: 0 14px;
+    gap: 9px;
+  }
+  .game-ui .topbar { height: 70px; }
+  .game-ui .brand { font-size: 14px; gap: 8px; }
+  .game-ui .brand small { font-size: 7px; letter-spacing: 1px; margin-top: 5px; }
+  .game-ui .brand-mark { width: 35px; height: 35px; }
+  .game-ui .top-actions { gap: 5px; }
+  .game-ui .nick-button { max-width: 108px; overflow: hidden; font-size: 10px; padding: 8px 9px; }
+  .game-ui .language-picker { padding: 7px 6px; gap: 4px; }
+  .game-ui .language-picker select { font-size: 10px; }
+  .game-ui .hero { height: auto; min-height: 430px; }
+  .game-ui .hero-content { padding: 42px 22px 125px; }
+  .game-ui .hero h1 { font-size: clamp(30px, 8vw, 43px); }
+  .game-ui .hero-content p { font-size: 14px; line-height: 1.7; }
+  .game-ui .hero-actions { flex-wrap: wrap; }
+  .game-ui .hero-actions a { min-height: 42px; }
+  .game-ui .hero-stats { left: 22px; right: 15px; bottom: 18px; gap: 13px; }
+  .game-ui .hero-stats strong { font-size: 15px; }
+  .game-ui .hero-stats span { font-size: 9px; letter-spacing: .5px; }
+  .game-ui .intro-row { padding: 27px 2px 18px; }
+  .game-ui .intro-row h2 { font-size: 23px; }
+  .game-ui .intro-row p { font-size: 13px; }
+  .game-ui .feature-pills { gap: 6px; }
+  .game-ui .feature-pills span { font-size: 11px; padding: 8px; }
+  .game-ui .rooms-panel,
+  .game-ui .chat-head,
+  .game-ui .leaderboard { padding: 16px; }
+  .game-ui .panel-heading { align-items: flex-start; gap: 10px; }
+  .game-ui .panel-heading h3,
+  .game-ui .chat-head h3 { font-size: 17px; }
+  .game-ui .panel-heading .create-btn { font-size: 9px; padding: 9px 10px; }
+  .game-ui .filters { flex-wrap: wrap; }
+  .game-ui .filters .searchbox { flex-basis: 100%; }
+  .game-ui .filters label:not(.searchbox) { flex: 1; }
+  .game-ui .filters input,
+  .game-ui .filters select { font-size: 12px; }
+  .game-ui .room { flex-wrap: wrap; gap: 9px; padding: 13px 5px; }
+  .game-ui .room-main { width: calc(100% - 50px); flex: auto; }
+  .game-ui .room-title { font-size: 14px; }
+  .game-ui .room-meta { font-size: 11px; gap: 8px; }
+  .game-ui .room-host { font-size: 10px; }
+  .game-ui .room-players { margin-left: 43px; }
+  .game-ui .room-players strong { font-size: 18px; }
+  .game-ui .room-players small { font-size: 9px; }
+  .game-ui .join-btn { margin-left: auto; font-size: 10px; }
+  .game-ui .message-content p { font-size: 13px; }
+  .game-ui .bottom-info { grid-template-columns: 1fr; gap: 9px; }
+  .game-ui .discord-banner { flex-wrap: wrap; padding: 17px; gap: 12px; }
+  .game-ui .discord-copy { flex: 1 1 220px; }
+  .game-ui .discord-copy h2 { font-size: 18px; }
+  .game-ui .discord-copy p { font-size: 12px; }
+  .game-ui .discord-btn { width: 100%; justify-content: center; }
+  .game-ui footer { flex-wrap: wrap; justify-content: center; text-align: center; }
+  .game-ui footer .brand { width: 100%; justify-content: center; }
+  .browser-page:not(.coach-page) .browser-topbar .brand { font-size: 13px; }
+  .browser-page:not(.coach-page) .browser-back { font-size: 10px; }
+  .browser-page:not(.coach-page) .language-picker { padding: 7px 6px; }
+  .browser-page:not(.coach-page) .browser-hero,
+  .browser-page:not(.coach-page) .browser-results { padding: 16px; }
+  .browser-page:not(.coach-page) .browser-hero h1 { font-size: clamp(26px, 7.5vw, 38px); }
+  .browser-page:not(.coach-page) .browser-hero > p { font-size: 13px; }
+  .browser-page:not(.coach-page) .browser-tabs { flex-wrap: wrap; }
+  .browser-page:not(.coach-page) .browser-tabs button { flex: 1 1 140px; font-size: 10px; padding: 10px; }
+  .browser-page:not(.coach-page) .browser-controls { flex-wrap: wrap; }
+  .browser-page:not(.coach-page) .browser-search { flex-basis: 100%; }
+  .browser-page:not(.coach-page) .browser-lobby { flex-wrap: wrap; gap: 9px; }
+  .browser-page:not(.coach-page) .browser-lobby-main { width: calc(100% - 58px); flex: auto; }
+  .browser-page:not(.coach-page) .browser-lobby-count { margin-left: 53px; }
+  .browser-page:not(.coach-page) .browser-lobby-actions { margin-left: auto; min-width: 120px; }
+  .browser-page:not(.coach-page) .browser-lobby-meta { gap: 8px; font-size: 11px; }
+  .browser-page:not(.coach-page) .browser-player-list { font-size: 11px; }
+  .browser-page:not(.coach-page) .browser-footnote,
+  .browser-page:not(.coach-page) .browser-updated,
+  .browser-page:not(.coach-page) .browser-notice { font-size: 11px; }
+}
