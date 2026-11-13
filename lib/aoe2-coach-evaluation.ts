@@ -230,13 +230,13 @@ export function evaluateAoE2Match(
   }
 
   if (strategyStrength >= 3) {
-    strategyScore = 23;
+    strategyScore = 18;
     strategyReason = "A abertura foi classificada por sinais concretos de unidade e/ou construção, e não apenas pelo resultado da partida.";
   } else if (strategyStrength === 2) {
     strategyScore = 18;
     strategyReason = "Há sinais de composição e construções compatíveis, mas a quantidade de unidades ainda deixa margem para outra leitura.";
   } else if (strategyStrength === 1) {
-    strategyScore = 13;
+    strategyScore = 10;
     strategyReason = "A classificação depende principalmente das construções; não há unidades suficientes para confirmar a abertura.";
   }
   if (feudal !== null) evidence.push(`Feudal iniciada em ${clock(feudal)} no tempo bruto do replay.`);
@@ -327,22 +327,31 @@ export function evaluateAoE2Match(
     if (counterAt !== undefined) {
       response = { unit: counter?.unit ?? "Muralhas", at: counterAt };
       const delay = Math.max(0, counterAt - threat.at);
-      reactionScore = delay <= 60 ? 20 : delay <= 120 ? 17 : delay <= 180 ? 14 : delay <= 300 ? 10 : delay <= 420 ? 7 : 4;
+      reactionScore = delay <= 60 ? 15 : delay <= 120 ? 13 : delay <= 180 ? 11 : delay <= 300 ? 8 : delay <= 420 ? 5 : 3;
       reactionSummary = delay <= 60
         ? "Resposta muito rápida após o primeiro comando militar adversário detectado."
         : `Primeira resposta identificada ${Math.round(delay)}s depois do primeiro comando militar adversário detectado.`;
     } else {
-      reactionScore = 2;
+      reactionScore = 1;
       reactionSummary = "Houve produção militar adversária, mas o replay não mostrou uma unidade de contra-ataque ou muralha nos 7 minutos seguintes.";
     }
   }
 
+  const eapmSeries = Object.values(selected.eapmPerMinute ?? {}).map(Number).filter(Number.isFinite);
+  const activeMinuteCount = eapmSeries.filter((value) => value > 0).length;
+  const activityScore = eapmSeries.length >= 3
+    ? Math.round(activeMinuteCount / eapmSeries.length * 10)
+    : null;
+  const activityReason = eapmSeries.length >= 3
+    ? `${activeMinuteCount} de ${eapmSeries.length} intervalos retornaram comandos efetivos. Isso mede presença de atividade, não qualidade de micro ou decisões.`
+    : "Não há intervalos de eAPM suficientes para avaliar a consistência da atividade.";
+
   const categories: EvaluationCategory[] = [
-    category("opening", "Execução da abertura", strategyScore, 25, strategyReason),
+    category("opening", "Execução da abertura", strategyScore, 20, strategyReason),
     category("timing", "Timing das eras", null, 20, "Comparação de timing será pontuada apenas em partidas 1v1 RM na Arabia, velocidade Normal, para evitar comparar mapas/modos diferentes.", "not_applicable"),
     category("economy", "Regularidade econômica", economyScore, 20, economyReason),
     category("military", "Composição e tecnologias", militaryScore, 15, militaryReason),
-    category("reaction", "Reação à pressão adversária", reactionScore, 20, reactionSummary,
+    category("reaction", "Reação à pressão adversária", reactionScore, 15, reactionSummary,
       reactionScore === null ? "not_applicable" : "scored"),
   ];
 
@@ -387,7 +396,7 @@ export function evaluateAoE2Match(
   if (strategyScore !== null) strengths.push(`A abertura ${strategy} foi reconhecida por ${evidence[0] ?? "sinais da sequência de produção"}`);
   if (economyScore !== null && economyScore >= 16) strengths.push("Boa regularidade aparente nos comandos de produção de aldeões.");
   if (militaryScore !== null && militaryScore >= 13) strengths.push("A composição militar teve apoio de tecnologia compatível com a estratégia detectada.");
-  if (reactionScore !== null && reactionScore >= 14) strengths.push("A resposta militar apareceu pouco tempo depois da pressão adversária registrada.");
+  if (reactionScore !== null && reactionScore >= 11) strengths.push("A resposta militar apareceu pouco tempo depois da pressão adversária registrada.");
 
   if (villagerGaps.length) {
     const worst = villagerGaps.sort((a, b) => b.gap - a.gap)[0];
@@ -411,7 +420,7 @@ export function evaluateAoE2Match(
       action: "Considere Bloodlines ou melhorias de ataque/armadura quando a economia permitir e a produção de Scouts continuar relevante.",
     });
   }
-  if (threat && reactionScore !== null && reactionScore <= 7) {
+  if (threat && reactionScore !== null && reactionScore <= 5) {
     const enemyClass = includesAny(threat.unit, ["archer", "crossbow", "skirmisher", "longbow"]) ? "unidades de alcance"
       : includesAny(threat.unit, ["scout", "light cavalry", "knight", "cavalier", "paladin", "camel"]) ? "cavalaria"
       : "unidades militares";
