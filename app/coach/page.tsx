@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
-  CheckCircle2, Clock3, FileVideo, Gauge, Medal, Search, Swords,
+  CheckCircle2, Clock3, FileVideo, Gauge, Medal, Search, Swords, Target, ShieldCheck,
   Upload, Users, Zap,
 } from "lucide-react";
 
@@ -26,6 +26,50 @@ type Report = {
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;detail:string|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
+  evaluation: {
+    overallScore: number | null;
+    overallLabel: string;
+    confidence: "high" | "medium" | "low";
+    coverage: number;
+    strategy: {
+      name: string;
+      confidence: "high" | "medium" | "low";
+      reason: string;
+      evidence: string[];
+      alternatives: string[];
+    };
+    categories: Array<{
+      id: string;
+      title: string;
+      score: number | null;
+      max: number;
+      reason: string;
+      status: "scored" | "not_applicable" | "insufficient_data";
+    }>;
+    reaction: {
+      opponentUnit: string | null;
+      opponentTime: string | null;
+      responseUnit: string | null;
+      responseTime: string | null;
+      delaySeconds: number | null;
+      score: number | null;
+      summary: string;
+    };
+    strengths: string[];
+    tips: Array<{
+      severity: "high" | "medium" | "positive";
+      time: string | null;
+      title: string;
+      detail: string;
+      action: string;
+    }>;
+    benchmark: {
+      applicable: boolean;
+      note: string;
+      feudalTime: string | null;
+      targetFeudalTime: string | null;
+    };
+  };
 };
 const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString("pt-BR", { dateStyle:"short", timeStyle:"short" }) : "Data indisponível";
 const durationLabel = (value: number | null) => {
@@ -183,6 +227,83 @@ export default function CoachPage() {
 
     {report&&<section className="panel coach-report">
       <div className="coach-report-title"><div><div className="eyebrow muted">RELATÓRIO DE DESEMPENHO</div><h2>{report.selectedPlayer?.name||"Jogador analisado"}</h2><p>{report.map||"Mapa não identificado"} · {durationLabel(report.durationSeconds)} · {report.gameType||"Modo não identificado"}</p></div><span className="coach-parser-badge">PARSER {report.parserVersion}</span></div>
+      <div className="coach-evaluation">
+        <div className="coach-score-card">
+          <div className="eyebrow muted">PONTUAÇÃO DE EXECUÇÃO · BETA</div>
+          <div className="coach-score-number">{report.evaluation.overallScore ?? "—"}<small>/100</small></div>
+          <strong>{report.evaluation.overallLabel}</strong>
+          <p>{report.evaluation.coverage}% dos critérios pontuados · confiança {report.evaluation.confidence === "high" ? "alta" : report.evaluation.confidence === "medium" ? "média" : "baixa"}</p>
+          <span>Não é uma nota oficial do jogo. É uma avaliação experimental baseada nos eventos detectados.</span>
+        </div>
+        <div className="coach-strategy-card">
+          <div className="eyebrow muted">ESTRATÉGIA IDENTIFICADA</div>
+          <h3>{report.evaluation.strategy.name}</h3>
+          <span className={"coach-confidence " + report.evaluation.strategy.confidence}>
+            Confiança {report.evaluation.strategy.confidence === "high" ? "alta" : report.evaluation.strategy.confidence === "medium" ? "média" : "baixa"}
+          </span>
+          <p>{report.evaluation.strategy.reason}</p>
+          {report.evaluation.strategy.evidence.length > 0 && <div className="coach-evidence">
+            <b>Evidências encontradas</b>
+            {report.evaluation.strategy.evidence.map((item,i)=><span key={i}>• {item}</span>)}
+          </div>}
+          {report.evaluation.strategy.alternatives.length > 0 && <div className="coach-alternatives">
+            <b>Possíveis variações</b>
+            {report.evaluation.strategy.alternatives.map((item,i)=><span key={i}>{item}</span>)}
+          </div>}
+        </div>
+      </div>
+
+      <div className="coach-report-block coach-score-breakdown">
+        <h3><Target size={17}/> Como você pontuou</h3>
+        <div className="coach-category-list">
+          {report.evaluation.categories.map((item)=>(
+            <div className="coach-category-row" key={item.id}>
+              <div className="coach-category-top">
+                <b>{item.title}</b>
+                <strong>{item.score === null ? "N/A" : item.score + "/" + item.max}</strong>
+              </div>
+              <div className="coach-category-track">
+                <span style={{width: (item.score === null ? 0 : Math.max(0, Math.min(100, item.score / item.max * 100))) + "%"}}/>
+              </div>
+              <p>{item.reason}</p>
+            </div>
+          ))}
+        </div>
+        <p className="coach-footnote">{report.evaluation.benchmark.note}{report.evaluation.benchmark.feudalTime ? " Seu Feudal: " + report.evaluation.benchmark.feudalTime + (report.evaluation.benchmark.targetFeudalTime ? " · referência: " + report.evaluation.benchmark.targetFeudalTime : "") + "." : ""}</p>
+      </div>
+
+      <div className="coach-reaction-card">
+        <div className="coach-report-block">
+          <h3><ShieldCheck size={17}/> Leitura de reação ao adversário</h3>
+          <div className="coach-reaction-flow">
+            <div><small>AMEAÇA DETECTADA</small><b>{report.evaluation.reaction.opponentUnit ?? "Não identificada"}</b><span>{report.evaluation.reaction.opponentTime ?? "—"}</span></div>
+            <div className="coach-reaction-arrow">→</div>
+            <div><small>SUA RESPOSTA</small><b>{report.evaluation.reaction.responseUnit ?? "Não identificada"}</b><span>{report.evaluation.reaction.responseTime ?? "—"}</span></div>
+          </div>
+          <p>{report.evaluation.reaction.summary}</p>
+          {report.evaluation.reaction.delaySeconds !== null && <small className="coach-reaction-delay">Intervalo observado: {report.evaluation.reaction.delaySeconds}s</small>}
+          <p className="coach-footnote">O intervalo é medido entre comandos registrados no replay. Não confirma o momento em que você avistou o adversário.</p>
+        </div>
+      </div>
+
+      <div className="coach-report-block coach-tips-block">
+        <h3><BookOpen size={17}/> O que poderia ter sido feito</h3>
+        {report.evaluation.tips.map((tip,i)=>(
+          <article className={"coach-tip " + tip.severity} key={i}>
+            <div className="coach-tip-heading">
+              <b>{tip.title}</b>
+              <span>{tip.time ?? "Análise geral"}</span>
+            </div>
+            <p>{tip.detail}</p>
+            <div><strong>Recomendação:</strong> {tip.action}</div>
+          </article>
+        ))}
+      </div>
+      {report.evaluation.strengths.length > 0 && <div className="coach-strengths">
+        <b><CheckCircle2 size={16}/> O que você fez bem</b>
+        {report.evaluation.strengths.map((item,i)=><span key={i}>• {item}</span>)}
+      </div>}
+
       <div className="coach-metric-grid">
         <div className="coach-metric"><Gauge size={19}/><span>eAPM</span><strong>{report.metrics.eapm??"—"}</strong><small>Ações efetivas/min</small></div>
         <div className="coach-metric"><Activity size={19}/><span>APM</span><strong>{report.metrics.apm??"—"}</strong><small>Ações totais/min</small></div>
