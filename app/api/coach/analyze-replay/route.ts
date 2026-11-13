@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentPlayerId } from "@/lib/session";
+import { createHmac } from "node:crypto";
 import { getAoERecentMatches } from "@/lib/aoe2-coach";
 
 export const runtime = "nodejs";
@@ -12,12 +13,12 @@ function parserConfig() {
   return { serviceUrl, secret };
 }
 
-async function parseReplay(bytes: ArrayBuffer, filename: string, secret: string, serviceUrl: string) {
+function createServiceToken(playerId: string, secret: string) {\n  const payload = Buffer.from(JSON.stringify({ sub: playerId, exp: Math.floor(Date.now() / 1000) + 600, scope: "replay:analyze" })).toString("base64url");\n  const signature = createHmac("sha256", secret).update(payload).digest("base64url");\n  return `${payload}.${signature}`;\n}\n\nasync function parseReplay(bytes: ArrayBuffer, filename: string, secret: string, serviceUrl: string, playerId: string, profileId: number) {
   const form = new FormData();
-  form.append("file", new Blob([bytes], { type: "application/zip" }), filename);
+  form.append("file", new Blob([bytes], { type: "application/zip" }), filename);\n  form.append("profile_id", String(profileId));
   const response = await fetch(`${serviceUrl}/analyze`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${secret}` },
+    headers: { Authorization: `Bearer ${createServiceToken(playerId, secret)}` },
     body: form,
     signal: AbortSignal.timeout(55000),
     cache: "no-store",
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "O replay excede o limite de 100 MB." }, { status: 413 });
     }
 
-    const report = await parseReplay(bytes, `AgeIIDE_Replay_${matchId}.zip`, config.secret, config.serviceUrl);
+    const report = await parseReplay(bytes, `AgeIIDE_Replay_${matchId}.zip`, config.secret, config.serviceUrl, ownerPlayerId, profileId);
     return NextResponse.json({ report, match, source: "automatic-replay-download" });
   } catch (error) {
     console.error("coach automatic replay analysis", error);
