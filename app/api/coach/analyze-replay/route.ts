@@ -13,9 +13,16 @@ function parserConfig() {
   return { serviceUrl, secret };
 }
 
-function createServiceToken(playerId: string, secret: string) {\n  const payload = Buffer.from(JSON.stringify({ sub: playerId, exp: Math.floor(Date.now() / 1000) + 600, scope: "replay:analyze" })).toString("base64url");\n  const signature = createHmac("sha256", secret).update(payload).digest("base64url");\n  return `${payload}.${signature}`;\n}\n\nasync function parseReplay(bytes: ArrayBuffer, filename: string, secret: string, serviceUrl: string, playerId: string, profileId: number) {
+function createServiceToken(playerId: string, secret: string) {
+  const payload = Buffer.from(JSON.stringify({ sub: playerId, exp: Math.floor(Date.now() / 1000) + 600, scope: "replay:analyze" })).toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
+
+async function parseReplay(bytes: ArrayBuffer, filename: string, secret: string, serviceUrl: string, playerId: string, profileId: number) {
   const form = new FormData();
-  form.append("file", new Blob([bytes], { type: "application/zip" }), filename);\n  form.append("profile_id", String(profileId));
+  form.append("file", new Blob([bytes], { type: "application/zip" }), filename);
+  form.append("profile_id", String(profileId));
   const response = await fetch(`${serviceUrl}/analyze`, {
     method: "POST",
     headers: { Authorization: `Bearer ${createServiceToken(playerId, secret)}` },
