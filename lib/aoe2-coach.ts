@@ -125,7 +125,7 @@ export async function getAoERecentMatches(profileId: number) {
         map: mapName,
         mapRaw,
         gameTypeId: match.matchtype_id ?? null,
-        playerCount: Number(match.maxplayers ?? participants.length),
+        playerCount: participants.length,
         startedAt: start ? new Date(start * 1000).toISOString() : null,
         completedAt: completion ? new Date(completion * 1000).toISOString() : null,
         durationSeconds: start && completion && completion > start ? completion - start : null,
