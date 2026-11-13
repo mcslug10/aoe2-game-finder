@@ -1,3 +1,5 @@
+import { companionGet } from "@/lib/aoe2-coach";
+
 export type RatingHistoryPoint = {
   date: string;
   rating: number;
@@ -85,7 +87,7 @@ function makeRatingSeries(
 export async function getCompanionRatingHistory(profileId: number): Promise<RatingHistory> {
   const payload = await companionGet(`profiles/${profileId}/ratings`, { language: "en" });
   const groups = Array.isArray(payload.ratings) ? payload.ratings as CompanionRatingGroup[] : [];
-  const oneVsOne = makeRatingSeries(groups, 3, "1v1 Random Map", ["1v1 rm", "1v1 random map"]);
-  const teamGames = makeRatingSeries(groups, 4, "Team Random Map", ["team rm", "team random map"]);
+  const oneVsOne = makeRatingSeries(groups, 3, "1v1 Random Map", ["1v1 rm", "rm 1v1", "1v1 random map", "random map 1v1"]);
+  const teamGames = makeRatingSeries(groups, 4, "Team Random Map", ["team rm", "rm team", "team random map", "random map team"]);
   return { oneVsOne, teamGames, updatedAt: new Date().toISOString() };
 }
