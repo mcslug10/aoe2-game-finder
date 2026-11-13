@@ -271,3 +271,68 @@ footer{border-top:1px solid #62583a;padding:22px 0 27px;display:flex;justify-con
  .coach-rating-axis-label{font-size:9px}
  .coach-rating-legend small{width:100%;margin-left:0}
 }
+
+
+/* AOE2 Coach accessibility: improve text size and reading comfort */
+.coach-page{font-size:15px}
+.coach-hero>p{font-size:16px;line-height:1.75}
+.coach-hero-points span{font-size:12px}
+.coach-section-heading p{font-size:14px;line-height:1.65}
+.coach-search-form input{font-size:15px}
+.coach-search-form .create-btn{font-size:12px}
+.coach-profile-choices>strong{font-size:13px}
+.coach-profile-choice b{font-size:14px}
+.coach-profile-choice small{font-size:12px}
+.coach-label{font-size:11px}
+.coach-selected-profile small{font-size:12px}
+.coach-count{font-size:25px}
+.coach-empty{font-size:14px;line-height:1.6}
+.coach-match-info p{font-size:13px;line-height:1.5}
+.coach-match-info small{font-size:12px;line-height:1.5}
+.coach-analyze-btn{font-size:11px}
+.coach-footnote{font-size:12px;line-height:1.75}
+.coach-dropzone>span{font-size:12px}
+.coach-upload-action{font-size:11px!important}
+.coach-alert{font-size:14px;line-height:1.65}
+.coach-parser-badge{font-size:10px}
+.coach-report-title p{font-size:13px;line-height:1.55}
+.coach-metric>span{font-size:12px}
+.coach-metric small{font-size:11px;line-height:1.4}
+.coach-insight b{font-size:13px}
+.coach-insight p{font-size:12px;line-height:1.7}
+.coach-age-item span{font-size:12px}
+.coach-timeline-row{font-size:12px;line-height:1.55;grid-template-columns:72px 120px 1fr}
+.coach-limitations ul{font-size:12px;line-height:1.85}
+.coach-score-card>p{font-size:12px;line-height:1.6}
+.coach-score-card>span{font-size:11px;line-height:1.7}
+.coach-confidence{font-size:10px}
+.coach-strategy-card>p{font-size:13px;line-height:1.7}
+.coach-evidence>b,.coach-alternatives>b{font-size:12px}
+.coach-evidence span,.coach-alternatives span{font-size:12px;line-height:1.65}
+.coach-category-top b{font-size:13px}
+.coach-category-row p{font-size:12px;line-height:1.7}
+.coach-reaction-flow small{font-size:10px;line-height:1.4}
+.coach-reaction-flow span{font-size:12px}
+.coach-reaction-card .coach-report-block>p{font-size:13px;line-height:1.7}
+.coach-reaction-delay{font-size:11px}
+.coach-tip-heading span{font-size:11px}
+.coach-tip p{font-size:12px;line-height:1.7}
+.coach-tip>div:last-child{font-size:12px;line-height:1.7}
+.coach-strengths span{font-size:12px;line-height:1.7}
+.coach-rating-range button{font-size:11px;padding:9px 11px}
+.coach-rating-stat>span{font-size:12px}
+.coach-rating-stat>small{font-size:11px;line-height:1.5}
+.coach-rating-axis-label{font-size:12px}
+.coach-rating-legend span{font-size:12px}
+.coach-rating-legend small{font-size:11px}
+.coach-rating-empty{font-size:13px;line-height:1.7}
+.coach-rating-loading{font-size:13px}
+@media(max-width:760px){
+  .coach-hero>p{font-size:15px}
+  .coach-section-heading p{font-size:13px}
+  .coach-match-info p{font-size:12px}
+  .coach-match-info small{font-size:11px}
+  .coach-timeline-row{grid-template-columns:58px 90px minmax(0,1fr);gap:6px;font-size:11px;line-height:1.5;padding:10px 8px}
+  .coach-rating-axis-label{font-size:11px}
+  .coach-rating-legend span{font-size:11px}
+}
