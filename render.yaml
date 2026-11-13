@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aoe2-coach-parser
+    runtime: docker
+    rootDir: coach-service
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: COACH_SERVICE_TOKEN
+        sync: false
