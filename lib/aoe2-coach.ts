@@ -66,7 +66,7 @@ function makeUrl(path: string, params: Record<string, string>) {
   return url;
 }
 
-async function companionGet(path: string, params: Record<string, string> = {}) {
+export async function companionGet(path: string, params: Record<string, string> = {}) {
   const url = makeUrl(path, params);
   let response: Response;
   try {
