@@ -158,7 +158,9 @@ export async function getCompanionRecentMatches(profileId: number) {
         includesPlayer: Boolean(selected),
         gameModeName: match.gameModeName ?? "Unknown",
         speedName: match.speedName ?? "Unknown",
-        speedFactor: typeof match.speedFactor === "number" ? match.speedFactor : undefined,\n        leaderboardName: match.leaderboardName ?? "Unknown",\n        teams: match.teams ?? [],
+        speedFactor: typeof match.speedFactor === "number" ? match.speedFactor : undefined,
+        leaderboardName: match.leaderboardName ?? "Unknown",
+        teams: match.teams ?? [],
       };
     })
     .filter((match) => match.includesPlayer)
