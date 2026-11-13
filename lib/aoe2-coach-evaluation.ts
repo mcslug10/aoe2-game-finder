@@ -13,7 +13,7 @@ type PlayerAnalysis = {
   queuedBuildings?: QueueItem[];
   queuedWalls?: Array<{ timestamp: string }>;
 };
-type MatchTeam = { teamId?: number; players?: Array<{ profileId: number }> };
+type MatchTeam = { teamId?: number; players?: Array<{ profileId?: number }> };
 type MatchContext = {
   map?: string;
   gameModeName?: string;
