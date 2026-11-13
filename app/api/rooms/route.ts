@@ -26,27 +26,33 @@ export async function GET() {
   try {
     const db = getAdminSupabase();
     const baseColumns = "id,title,game_mode,map_name,min_elo,max_elo,region,players(nickname)";
-    let queryResult = await db
+    const withLobbyColumn = await db
       .from("rooms")
       .select(`${baseColumns},game_lobby_id`)
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(100);
 
-    let lobbyColumnAvailable = !queryResult.error;
-    if (queryResult.error && isMissingLobbyColumn(queryResult.error)) {
-      // Keep the normal room browser working until the optional lobby-ID migration is applied.
-      queryResult = await db
+    let rows: RoomRow[] = [];
+    let lobbyColumnAvailable = false;
+
+    if (!withLobbyColumn.error) {
+      rows = (withLobbyColumn.data ?? []) as unknown as RoomRow[];
+      lobbyColumnAvailable = true;
+    } else if (isMissingLobbyColumn(withLobbyColumn.error)) {
+      // Keep room listings working until the optional lobby-ID SQL migration is applied.
+      const withoutLobbyColumn = await db
         .from("rooms")
         .select(baseColumns)
         .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(100);
-      lobbyColumnAvailable = false;
+      if (withoutLobbyColumn.error) throw withoutLobbyColumn.error;
+      rows = (withoutLobbyColumn.data ?? []) as unknown as RoomRow[];
+    } else {
+      throw withLobbyColumn.error;
     }
-    if (queryResult.error) throw queryResult.error;
 
-    const rows = (queryResult.data ?? []) as unknown as RoomRow[];
     return NextResponse.json({
       rooms: rows.map((room) => ({
         id: room.id,
