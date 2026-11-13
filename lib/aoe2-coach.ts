@@ -97,7 +97,7 @@ export async function getAoERecentMatches(profileId: number) {
   });
   const matches = Array.isArray(payload.matchHistoryStats) ? payload.matchHistoryStats as AoEMatch[] : [];
   const profiles = Array.isArray(payload.profiles) ? payload.profiles as AoEProfile[] : [];
-  const profileMap = new Map(profiles.map((profile) => [Number(profile.profile_id), profile]));
+  const profileMap = new Map<number, AoEProfile>(profiles.map((profile): [number, AoEProfile] => [Number(profile.profile_id), profile]));
 
   const normalized = matches
     .filter((match) => match.completiontime && match.id !== undefined)
