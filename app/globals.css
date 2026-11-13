@@ -170,3 +170,61 @@ footer{border-top:1px solid #62583a;padding:22px 0 27px;display:flex;justify-con
  .coach-timeline-row{grid-template-columns:48px 80px 1fr;gap:7px;font-size:8px;padding:8px}
  .coach-header-tag{display:none}
 }
+
+
+/* AOE2 Coach: strategy classification, performance score and tactical feedback */
+.coach-evaluation{display:grid;grid-template-columns:minmax(220px,.72fr) minmax(0,1.5fr);gap:12px;margin:20px 0;position:relative;z-index:1}
+.coach-score-card,.coach-strategy-card{padding:19px;background:linear-gradient(145deg,#253126,#19231b);border:1px solid #796740;box-shadow:inset 0 0 0 3px #171e18}
+.coach-score-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.coach-score-number{font:800 57px 'Barlow Condensed';line-height:1;color:#edcf89;margin:8px 0}
+.coach-score-number small{font-size:20px;color:#a8a98f;margin-left:4px}
+.coach-score-card>strong{font:700 20px 'Barlow Condensed';color:#f0e5ce}
+.coach-score-card>p{font-size:9px;color:#d0c5a6;margin:8px 0}
+.coach-score-card>span{font-size:8px;color:#9ea995;line-height:1.6}
+.coach-strategy-card h3{font:700 30px 'Barlow Condensed';color:#f1e4c4;margin:5px 0 7px}
+.coach-confidence{display:inline-flex;padding:5px 8px;font-size:8px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;border:1px solid #626e4d;background:#263323;color:#d1dfa9}
+.coach-confidence.medium{border-color:#867044;background:#332d1d;color:#e5c780}
+.coach-confidence.low{border-color:#855d4c;background:#32231e;color:#e5a990}
+.coach-strategy-card>p{font-size:10px;line-height:1.6;color:#b9c1ae;margin:10px 0}
+.coach-evidence,.coach-alternatives{display:grid;gap:5px;margin-top:11px;padding-top:10px;border-top:1px solid #46503e}
+.coach-evidence>b,.coach-alternatives>b{font-size:9px;color:#e1c27a}
+.coach-evidence span,.coach-alternatives span{font-size:9px;line-height:1.5;color:#b7c0ad}
+.coach-alternatives>b{color:#c2c6a8}
+.coach-score-breakdown{margin-top:20px}
+.coach-category-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.coach-category-row{padding:12px;background:#20291f;border:1px solid #47533f}
+.coach-category-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.coach-category-top b{font-size:10px;color:#e8dec6}
+.coach-category-top strong{font:700 17px 'Barlow Condensed';color:#e4c17a;white-space:nowrap}
+.coach-category-track{height:6px;margin:8px 0;background:#121a14;border:1px solid #364132;overflow:hidden}
+.coach-category-track span{display:block;height:100%;background:linear-gradient(90deg,#8b7847,#dfbf76)}
+.coach-category-row p{font-size:9px;line-height:1.55;color:#aeb6a4;margin:0}
+.coach-reaction-card{margin-top:20px;padding:2px 15px 14px;background:linear-gradient(120deg,#202c24,#1a221b);border:1px solid #586347;position:relative;z-index:1}
+.coach-reaction-flow{display:grid;grid-template-columns:1fr 30px 1fr;align-items:center;gap:10px;margin-top:10px}
+.coach-reaction-flow>div:not(.coach-reaction-arrow){display:flex;flex-direction:column;gap:6px;padding:12px;background:#171f19;border:1px solid #48543e}
+.coach-reaction-flow small{font-size:8px;letter-spacing:1px;color:#a9b39e}
+.coach-reaction-flow b{font:700 18px 'Barlow Condensed';color:#e7d7b1}
+.coach-reaction-flow span{font-size:9px;color:#d4b36b}
+.coach-reaction-arrow{text-align:center;color:#d8b46c;font-size:20px}
+.coach-reaction-card .coach-report-block>p{font-size:10px;line-height:1.6;color:#b8c1af;margin:11px 0 0}
+.coach-reaction-delay{display:inline-flex;margin-top:7px;color:#e2c17a;font-size:9px}
+.coach-tips-block{margin-top:20px}
+.coach-tip{padding:13px 14px;margin-bottom:9px;background:#222a20;border:1px solid #54543b;border-left:3px solid #bd9955;position:relative;z-index:1}
+.coach-tip.high{border-left-color:#c37d5f;background:#2b221e}
+.coach-tip.positive{border-left-color:#7d9b63}
+.coach-tip-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.coach-tip-heading b{font:700 17px 'Barlow Condensed';color:#eee1c6}
+.coach-tip-heading span{font-size:8px;color:#d1b16a;white-space:nowrap}
+.coach-tip p{font-size:9px;line-height:1.55;color:#b9c0ae;margin:8px 0}
+.coach-tip>div:last-child{font-size:9px;line-height:1.6;color:#dec995}
+.coach-tip>div:last-child strong{color:#edcf88}
+.coach-strengths{display:grid;gap:7px;margin-top:17px;padding:14px;background:#202e20;border:1px solid #5b794c;position:relative;z-index:1}
+.coach-strengths>b{display:flex;align-items:center;gap:8px;font:700 18px 'Barlow Condensed';color:#c6d7a8}
+.coach-strengths span{font-size:9px;line-height:1.5;color:#b9c7ae}
+@media(max-width:760px){
+ .coach-evaluation{grid-template-columns:1fr}
+ .coach-score-card{min-height:160px}
+ .coach-category-list{grid-template-columns:1fr}
+ .coach-reaction-flow{grid-template-columns:1fr 20px 1fr;gap:5px}
+ .coach-reaction-flow b{font-size:15px}
+}
