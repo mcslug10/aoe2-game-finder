@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Castle, ExternalLink, Globe2, Lock, RefreshCw, Search, Swords, Users } from "lucide-react";
+import { ArrowLeft, Castle, ExternalLink, Globe2, RefreshCw, Search, Swords, Users } from "lucide-react";
 
 type Language = "pt" | "en";
 type GlobalLobby = { id: string; name: string; players: string[]; playerCount: number; slots: number; mode: string; passwordProtected: boolean; region: string; joinUrl: string | null };
-type CommunityRoom = { id: string; title: string; mode: string; map: string; elo: string; region: string; host: string; players: string };
+type CommunityRoom = { id: string; title: string; mode: string; map: string; elo: string; region: string; host: string; players: string; game_lobby_id?: string | null };
 const copy = {
   pt: { back:"Voltar ao Game Finder", title:"Browser de Partidas", subtitle:"Encontre lobbies abertos de Age of Empires II: Definitive Edition.", global:"Lobbies globais", community:"Comunidade Game Finder", search:"Buscar por nome ou jogador...", refresh:"Atualizar", loading:"Consultando partidas...", none:"Nenhum lobby aberto encontrado agora.", noCommunity:"Ainda não há salas da comunidade com um lobby real associado.", join:"ENTRAR NO JOGO", copyId:"Copiar ID", openGame:"Abrir Age of Empires II", slots:"vagas", players:"jogadores", protected:"Com senha", public:"Pública", updated:"Atualizado", unavailable:"O serviço global está indisponível neste momento. Tente novamente em instantes.", external:"A consulta global usa um serviço comunitário não oficial. Se o protocolo não abrir o jogo, copie o ID e procure a partida em Multiplayer → Find Custom Game.", roomChat:"Abrir sala no site" },
   en: { back:"Back to Game Finder", title:"Game Browser", subtitle:"Find open Age of Empires II: Definitive Edition lobbies.", global:"Global lobbies", community:"Game Finder community", search:"Search by lobby or player...", refresh:"Refresh", loading:"Loading lobbies...", none:"No open lobbies found right now.", noCommunity:"No community rooms linked to a real game lobby yet.", join:"JOIN GAME", copyId:"Copy ID", openGame:"Open Age of Empires II", slots:"slots", players:"players", protected:"Password", public:"Public", updated:"Updated", unavailable:"The global service is temporarily unavailable. Please try again shortly.", external:"Global listings use an unofficial community service. If the game protocol does not launch, copy the ID and find the lobby under Multiplayer → Find Custom Game.", roomChat:"Open site room" }
@@ -20,7 +20,6 @@ export default function BrowserPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"ok" | "unavailable">("ok");
   const [updatedAt, setUpdatedAt] = useState("");
-  const [error, setError] = useState("");
   const t = copy[language];
   const loadGlobal = useCallback(async () => {
     setLoading(true); setError("");
