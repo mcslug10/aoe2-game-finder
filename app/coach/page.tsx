@@ -26,7 +26,7 @@ type Report = {
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;detail:string|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
-  evaluation: {
+  evaluation?: {
     overallScore: number | null;
     overallLabel: string;
     confidence: "high" | "medium" | "low";
