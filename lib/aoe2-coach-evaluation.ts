@@ -266,7 +266,8 @@ export function evaluateAoE2Match(
   }
 
   const villagerEvents = ownUnits.filter((item) => includesAny(item.unit, ["villager"])).sort((a, b) => a.at - b.at);
-  const earlyGameSeconds = 15 * 60 / Math.max(1, match.speedFactor ?? 1.7);\n  const earlyVillagers = villagerEvents.filter((item) => item.at <= earlyGameSeconds);
+  const earlyGameSeconds = 15 * 60 / Math.max(1, match.speedFactor ?? 1.7);
+  const earlyVillagers = villagerEvents.filter((item) => item.at <= earlyGameSeconds);
   const villagerGaps: Array<{ from: number; to: number; gap: number }> = [];
   for (let i = 1; i < earlyVillagers.length; i++) {
     const previous = earlyVillagers[i - 1];
@@ -353,7 +354,11 @@ export function evaluateAoE2Match(
   let benchmarkNote = "Sem benchmark: mapa, modo ou velocidade diferentes do cenário de referência 1v1 Arabia/Normal.";
   let feudalDisplay: string | null = null;
   let targetFeudalDisplay: string | null = null;
-  if (benchmarkApplicable && feudal === null) {\n    const idx = categories.findIndex((item) => item.id === "timing");\n    categories[idx] = category("timing", "Timing das eras", null, 20, "A partida se encaixa no cenário de referência, mas o evento de avanço à Feudal não foi retornado.", "insufficient_data");\n  }\n  if (benchmarkApplicable && feudal !== null) {
+  if (benchmarkApplicable && feudal === null) {
+    const idx = categories.findIndex((item) => item.id === "timing");
+    categories[idx] = category("timing", "Timing das eras", null, 20, "A partida se encaixa no cenário de referência, mas o evento de avanço à Feudal não foi retornado.", "insufficient_data");
+  }
+  if (benchmarkApplicable && feudal !== null) {
     const speedFactor = match.speedFactor ?? 1;
     const inGameFeudal = feudal * speedFactor;
     feudalDisplay = clock(inGameFeudal);
