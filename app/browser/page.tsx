@@ -22,7 +22,7 @@ export default function BrowserPage() {
   const [updatedAt, setUpdatedAt] = useState("");
   const t = copy[language];
   const loadGlobal = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
     try {
       const response = await fetch("/api/game-browser/global", { cache: "no-store" });
       const data = await response.json();
@@ -37,7 +37,7 @@ export default function BrowserPage() {
       const response = await fetch("/api/rooms", { cache: "no-store" });
       const data = await response.json();
       if (response.ok) setCommunity((data.rooms ?? []).filter((room: CommunityRoom & { game_lobby_id?: string }) => Boolean(room.game_lobby_id)));
-    } catch { setError(t.unavailable); }
+    } catch { setCommunity([]); }
   }, [t.unavailable]);
   useEffect(() => {
     const saved = localStorage.getItem("aoe2-language");
