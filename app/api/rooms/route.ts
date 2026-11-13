@@ -4,15 +4,36 @@ import { currentPlayerId } from "@/lib/session";
 
 export const runtime = "nodejs";
 
+function isMissingLobbyColumn(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+  return error.code === "42703" || error.code === "PGRST204" ||
+    (error.message ?? "").toLowerCase().includes("game_lobby_id");
+}
+
 export async function GET() {
   try {
     const db = getAdminSupabase();
-    const { data, error } = await db
+    const baseColumns = "id,host_id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at,players(nickname)";
+    let { data, error } = await db
       .from("rooms")
-      .select("id,host_id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at,game_lobby_id,players(nickname)")
+      .select(`${baseColumns},game_lobby_id`)
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(100);
+
+    // Keep the existing site working before the optional SQL migration is applied.
+    // In this fallback, community rooms simply have no linked in-game lobby ID yet.
+    const lobbyColumnAvailable = !error;
+    if (error && isMissingLobbyColumn(error)) {
+      const fallback = await db
+        .from("rooms")
+        .select(baseColumns)
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error) throw error;
 
     return NextResponse.json({
@@ -25,8 +46,9 @@ export async function GET() {
         region: room.region ?? "Any region",
         host: room.players?.[0]?.nickname ?? "Jogador",
         players: "1/8",
-        game_lobby_id: room.game_lobby_id ?? null,
+        game_lobby_id: lobbyColumnAvailable ? room.game_lobby_id ?? null : null,
       })),
+      lobbyLinkingAvailable: lobbyColumnAvailable,
     });
   } catch (error) {
     console.error("rooms GET", error);
@@ -45,6 +67,7 @@ export async function POST(req: NextRequest) {
     const map = String(body.map ?? "Arabia");
     const elo = String(body.elo ?? "Any ELO");
     const lobbyIdInput = String(body.gameLobbyId ?? "").trim();
+
     if (lobbyIdInput && !/^\d{4,20}$/.test(lobbyIdInput)) {
       return NextResponse.json({ error: "Informe um ID numérico válido do lobby do Age of Empires II." }, { status: 400 });
     }
@@ -65,22 +88,29 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getAdminSupabase();
+    const insertPayload = {
+      host_id: playerId,
+      title,
+      game_mode: mode,
+      map_name: map,
+      min_elo,
+      max_elo,
+      region: "Any region",
+      status: "open",
+      ...(lobbyIdInput ? { game_lobby_id: lobbyIdInput } : {}),
+    };
+
     const { data, error } = await db
       .from("rooms")
-      .insert({
-        host_id: playerId,
-        title,
-        game_mode: mode,
-        map_name: map,
-        min_elo,
-        max_elo,
-        region: "Any region",
-        status: "open",
-        game_lobby_id: lobbyIdInput || null,
-      })
-      .select("id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at,game_lobby_id")
+      .insert(insertPayload)
+      .select("id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at")
       .single();
-    if (error) throw error;
+    if (error) {
+      if (lobbyIdInput && isMissingLobbyColumn(error)) {
+        return NextResponse.json({ error: "Para vincular um lobby real, execute primeiro a migração game_lobby_id no Supabase." }, { status: 409 });
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       room: {
@@ -92,7 +122,7 @@ export async function POST(req: NextRequest) {
         region: data.region ?? "Any region",
         host: "Você",
         players: mode === "1v1" ? "1/2" : mode === "2v2" ? "1/4" : mode === "3v3" ? "1/6" : "1/8",
-        game_lobby_id: data.game_lobby_id ?? null,
+        game_lobby_id: lobbyIdInput || null,
       },
     });
   } catch (error) {
