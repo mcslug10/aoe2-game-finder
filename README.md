@@ -51,8 +51,13 @@ Redeploy Vercel after saving the variables.
 ## Analysis contents and limitations
 
 - The report can include participant, civilization, map, game duration, eAPM, age-up timestamps, queued units, technologies, buildings and time-ordered build-order events.
+- Strategy detection looks for evidence such as Dark Age militia, Archery Range + Archers, Stable + Scouts, Feudal towers, Fast Castle transitions, and Castle Age follow-ups. It returns the evidence and confidence instead of hiding the rule.
+- The experimental execution score is split into opening execution (25), age timing (20), economy/production command regularity (20), military composition/technology (15), and response to opponent pressure (20). Unavailable categories are marked N/A and excluded from the normalized total; at least three categories must be available to show an overall score.
+- Arabia 1v1 Normal timing comparisons are shown only when map, game mode, speed and speed factor match the benchmark context. Civilization bonuses and chosen build order can still affect timings.
+- Reaction timing compares the first opponent military production event available in the replay data with your first detected counter-unit or wall command. This is not proof of the moment you saw the opponent.
 - eAPM is a measure of effective command activity, not a standalone skill grade.
-- Queue entries reflect observed queue commands; they do not necessarily equal the final number of completed units.
+- Queue entries reflect observed queue commands; they do not necessarily equal the final number of completed units. Villager production gaps are estimates based on queued commands, not a direct measurement of TC idle time.
+- Some opening classifier rules are adapted from the MIT-licensed `aoe2-openings` project; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - Exact TC idle time, live resource curves and army value through time require additional simulation/reconstruction. A universal skill score is intentionally not fabricated.
 - Strategy-specific scoring (Scout Rush, Archers, Fast Castle, etc.) can be added after defining benchmark build orders and criteria.
 
