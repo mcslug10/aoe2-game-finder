@@ -156,6 +156,10 @@ export async function getCompanionRecentMatches(profileId: number) {
         ratingChange: typeof ratingDiff === "number" ? ratingDiff : null,
         participants,
         includesPlayer: Boolean(selected),
+        gameModeName: match.gameModeName ?? "Unknown",
+        speedName: match.speedName ?? "Unknown",
+        speedFactor: typeof match.speedFactor === "number" ? match.speedFactor : undefined,
+        teams: match.teams ?? [],
       };
     })
     .filter((match) => match.includesPlayer)
@@ -186,7 +190,7 @@ function timeLabel(value: string | undefined) {
 export async function getCompanionMatchAnalysis(
   matchId: number,
   profileId: number,
-  matchContext: { map?: string; gameModeName?: string; speedName?: string; speedFactor?: number; teams?: Array<{ teamId?: number; players?: Array<{ profileId: number }> }> },
+  matchContext: { map?: string; gameModeName?: string; speedName?: string; speedFactor?: number; teams?: Array<{ teamId?: number; players?: Array<{ profileId?: number }> }> },
 ) {
   const payload = await companionGet(`matches/${matchId}/analysis`, { language: "en" }) as CompanionAnalysis;
   if (payload.error) throw new Error(payload.error);
