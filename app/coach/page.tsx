@@ -85,7 +85,10 @@ export default function CoachPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [report, setReport] = useState<Report | null>(null);\n  const [ratingHistory, setRatingHistory] = useState<RatingHistory | null>(null);\n  const [loadingRatings, setLoadingRatings] = useState(false);\n  const [ratingsError, setRatingsError] = useState("");
+  const [report, setReport] = useState<Report | null>(null);
+  const [ratingHistory, setRatingHistory] = useState<RatingHistory | null>(null);
+  const [loadingRatings, setLoadingRatings] = useState(false);
+  const [ratingsError, setRatingsError] = useState("");
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [busyMatchId, setBusyMatchId] = useState("");
