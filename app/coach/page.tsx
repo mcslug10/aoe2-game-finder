@@ -227,7 +227,7 @@ export default function CoachPage() {
 
     {report&&<section className="panel coach-report">
       <div className="coach-report-title"><div><div className="eyebrow muted">RELATÓRIO DE DESEMPENHO</div><h2>{report.selectedPlayer?.name||"Jogador analisado"}</h2><p>{report.map||"Mapa não identificado"} · {durationLabel(report.durationSeconds)} · {report.gameType||"Modo não identificado"}</p></div><span className="coach-parser-badge">PARSER {report.parserVersion}</span></div>
-      <div className="coach-evaluation">
+      {report.evaluation && <>\n      <div className="coach-evaluation">
         <div className="coach-score-card">
           <div className="eyebrow muted">PONTUAÇÃO DE EXECUÇÃO · BETA</div>
           <div className="coach-score-number">{report.evaluation.overallScore ?? "—"}<small>/100</small></div>
