@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAoEProfile } from "@/lib/aoe2-coach";
+import { searchCompanionProfiles } from "@/lib/aoe2-coach";
 
 export const runtime = "nodejs";
 
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await resolveAoEProfile(alias);
+    const data = await searchCompanionProfiles(alias);
     if (!data.profiles.length) {
       return NextResponse.json({ error: "Nenhum perfil encontrado. Confira a grafia do nickname e tente novamente." }, { status: 404 });
     }
