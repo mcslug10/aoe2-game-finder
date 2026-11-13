@@ -113,8 +113,21 @@ export default function CoachPage() {
     } finally { setLoadingPlayer(false); }
   }
 
+  async function loadRatingHistory(profileId: number) {
+    setLoadingRatings(true); setRatingHistory(null); setRatingsError("");
+    try {
+      const response = await fetch("/api/coach/ratings?profileId=" + profileId, { cache:"no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível carregar o histórico de rating.");
+      setRatingHistory(data as RatingHistory);
+    } catch (err) {
+      setRatingsError(err instanceof Error ? err.message : "Falha ao carregar o histórico de rating.");
+    } finally { setLoadingRatings(false); }
+  }
+
   async function chooseProfile(selected: Profile) {
     setProfile(selected); setProfiles([]); setMatches([]); setReport(null); setError(""); setNotice(""); setLoadingMatches(true);
+    void loadRatingHistory(selected.profile_id);
     try {
       const response = await fetch("/api/coach/matches?profileId=" + selected.profile_id, { cache:"no-store" });
       const data = await response.json();
