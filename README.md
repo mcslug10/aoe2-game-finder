@@ -8,59 +8,64 @@ Community matchmaking hub and replay-coaching companion for Age of Empires II: D
 - Global and community lobby browser.
 - Nickname-based community chat, rooms and leaderboard.
 - Official community Discord invitation.
-- **AOE2 Coach (MVP):** lookup of a player's public profile and completed match history, automatic replay download when available, manual replay upload, and objective replay analysis.
+- **AOE2 Coach (MVP):** search player profiles, view completed matches, retrieve available match analysis, and upload a local replay when analysis is not available.
 
-## AOE2 Coach deployment
+## AOE2 Coach data sources
 
-The Next.js app runs on Vercel. Replay parsing uses a separate Python service because parsing `.aoe2record` files is CPU- and memory-intensive and should not run inside a short-lived Next.js request.
+- Player profiles and match history use the AoE II Companion public data API (`https://data.aoe2companion.com/api/`).
+- Match analysis uses the Companion `/api/matches/{matchId}/analysis` endpoint. The service returns parsed replay details when an analysis is available for that match.
+- The World's Edge / Relic Link API is not the primary source for profile discovery in this MVP.
+- The Companion API is a third-party community service and may change or rate-limit requests; the app handles errors and retries are left to the user.
+
+## Optional Python parser for manual uploads
+
+The Next.js app runs on Vercel. Manual replay file parsing uses a separate Python service because parsing `.aoe2record` files is CPU- and memory-intensive and should not run inside a short-lived Next.js request.
 
 ### 1. Deploy the Python parser
 
 1. Open Render and create a **New Web Service** from this GitHub repository.
 2. Set the root directory to `coach-service`.
 3. Choose **Docker** as the runtime.
-4. Add an environment variable named `COACH_SERVICE_TOKEN` with a long random secret (at least 32 characters).
+4. Add `COACH_SERVICE_TOKEN` with a long random secret (at least 32 characters).
 5. Deploy the service and copy its HTTPS URL.
 
-The parser health endpoint is `/health`. The service accepts short-lived signed upload tokens from the Game Finder and does not persist uploaded replay files.
+The parser health endpoint is `/health`. It accepts short-lived signed upload tokens and does not persist uploaded replay files.
 
-### 2. Configure Vercel
+### 2. Configure Vercel for manual uploads
 
 Add these environment variables to the Vercel project for **Production** and **Preview**:
 
-- `AOE2_COACH_SERVICE_URL`: the Render HTTPS URL, without a trailing slash.
-- `AOE2_COACH_SERVICE_TOKEN`: exactly the same secret used by the parser service.
+- `AOE2_COACH_SERVICE_URL`: Render HTTPS URL, without a trailing slash.
+- `AOE2_COACH_SERVICE_TOKEN`: exactly the same secret configured on Render.
 
 Redeploy Vercel after saving the variables.
 
 ### 3. Use the Coach
 
 1. Open `/coach`.
-2. Search using the exact in-game nickname (case-sensitive).
-3. Select the correct profile if more than one is returned.
-4. Choose a completed match and click **Analisar replay**. The app verifies that the profile participated in the match before requesting a replay.
-5. If the automatic replay is unavailable, upload the `.aoe2record` file manually.
+2. Search by in-game nickname (the Companion search may return multiple profiles).
+3. Select the correct profile.
+4. Choose a completed match and click **Analisar replay**.
+5. If the Companion API has no analysis for that match, upload the local `.aoe2record` file manually (requires the optional Render service).
 
-## Data sources and limitations
+## Analysis contents and limitations
 
-- Player profile and completed match history come from the community-maintained, reverse-engineered World's Edge / Relic Link API. It is unofficial and may change without notice.
-- The automatic replay download endpoint is reverse-engineered and may be unavailable for some matches or profiles. Manual upload is the fallback.
-- The replay parser is `aoc-mgz`, an open-source MIT-licensed Python parser that supports Definitive Edition `.aoe2record` files.
-- The report shows evidence present in the replay: participants, map, duration, eAPM/APM when available, age-up events, and observed build/queue/research commands.
-- APM/eAPM are activity measures, not skill scores. Queue command counts are not guaranteed to equal units actually produced.
-- A reliable global skill grade, TC idle time, exact resource curves and full army-value history require a selected build-order benchmark and/or replaying the game simulation. The MVP intentionally does not invent those values.
+- The report can include participant, civilization, map, game duration, eAPM, age-up timestamps, queued units, technologies, buildings and time-ordered build-order events.
+- eAPM is a measure of effective command activity, not a standalone skill grade.
+- Queue entries reflect observed queue commands; they do not necessarily equal the final number of completed units.
+- Exact TC idle time, live resource curves and army value through time require additional simulation/reconstruction. A universal skill score is intentionally not fabricated.
+- Strategy-specific scoring (Scout Rush, Archers, Fast Castle, etc.) can be added after defining benchmark build orders and criteria.
 
 ## Local development
 
-- Node.js 20.9+
-- npm
+Requirements: Node.js 20.9+ and npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-The Python parser can be run locally from `coach-service`:
+Run the optional Python parser locally from `coach-service`:
 
 ```bash
 python -m venv .venv
@@ -74,6 +79,5 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 - Never expose Supabase secret/service-role keys in browser code or `NEXT_PUBLIC_` variables.
 - The parser service is protected by short-lived HMAC-signed upload tokens and limits uploads to 100 MB.
-- The service does not store uploaded replay files.
-- The Vercel server verifies that a selected profile participated in a match before requesting its replay.
-- The World's Edge endpoints are unofficial; cache requests, send an identifying User-Agent, and handle 429/5xx responses gracefully.
+- Uploaded replay files are not stored by the parser.
+- Public game/profile data is retrieved server-side; no user-provided secrets are needed to search a nickname.
