@@ -80,3 +80,93 @@ footer{border-top:1px solid #62583a;padding:22px 0 27px;display:flex;justify-con
 .discord-btn:hover{filter:brightness(1.13);transform:translateY(-1px)}
 .discord-btn svg{flex:none}
 @media(max-width:700px){.discord-banner{flex-wrap:wrap;gap:13px;padding:18px;margin:22px 0}.discord-emblem{width:48px;height:48px}.discord-copy{flex:1 1 calc(100% - 65px)}.discord-copy h2{font-size:25px}.discord-copy p{font-size:10px}.discord-btn{width:100%;margin-top:3px;padding:12px}}
+
+
+/* AOE2 Coach */
+.coach-page{max-width:1440px}
+.coach-header-tag{display:inline-flex;align-items:center;gap:7px;color:#e4c27d;font-size:10px;font-weight:800;letter-spacing:1.3px}
+.coach-hero{padding:30px;margin-bottom:18px}
+.coach-hero h1{font-size:clamp(40px,5vw,62px);margin:10px 0}
+.coach-hero>p{max-width:760px;color:#c4c5b6;font-size:13px;line-height:1.65}
+.coach-hero-points{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.coach-hero-points span{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;background:#20291f;border:1px solid #5c6347;color:#d7cda9;font-size:9px}
+.coach-lookup,.coach-matches,.coach-upload,.coach-report{padding:23px;margin-bottom:18px}
+.coach-section-heading{display:flex;align-items:center;gap:13px;margin-bottom:17px;position:relative;z-index:1}
+.coach-icon{width:43px;height:43px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,#4b432e,#1d261d);border:1px solid #8b7547;color:#e0bb6b;box-shadow:inset 0 0 0 3px #1b2119}
+.coach-section-heading h2{font:700 24px 'Barlow Condensed';margin:0 0 3px;color:#eee5cf}
+.coach-section-heading p{margin:0;color:#aeb5a4;font-size:10px;line-height:1.55}
+.coach-search-form{display:flex;gap:10px;position:relative;z-index:1}
+.coach-search-form input{flex:1;min-width:0;padding:13px 14px;background:#171f19;border:1px solid #596247;color:#f1eadc;outline:none}
+.coach-search-form input:focus{border-color:#bd9954}
+.coach-profile-choices{display:grid;gap:8px;margin-top:16px;position:relative;z-index:1}
+.coach-profile-choices>strong{color:#d8c999;font-size:10px}
+.coach-profile-choice{display:flex;align-items:center;justify-content:space-between;text-align:left;padding:12px 14px;background:#1d271e;border:1px solid #4c5a43;color:#eee4cf}
+.coach-profile-choice span{display:flex;flex-direction:column;gap:4px}
+.coach-profile-choice small{font-size:9px;color:#aab29e}
+.coach-choice-arrow{transform:rotate(180deg);color:#d9b86d}
+.coach-selected-profile{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:15px;margin-top:16px;background:linear-gradient(120deg,#253126,#1b251d);border:1px solid #79653f;position:relative;z-index:1}
+.coach-selected-profile h3{font:700 24px 'Barlow Condensed';margin:3px 0;color:#f4e5bc}
+.coach-selected-profile small{font-size:9px;color:#aab29e}
+.coach-label{font-size:8px;letter-spacing:1.2px;color:#d4b36b;font-weight:800}
+.coach-count{margin-left:auto;color:#d9b86d;font:700 22px 'Barlow Condensed'}
+.coach-empty{display:flex;align-items:center;justify-content:center;gap:9px;padding:24px;color:#aeb5a4;font-size:11px;border-top:1px solid #424b39}
+.coach-match-list{display:grid;gap:8px;position:relative;z-index:1}
+.coach-match{display:flex;align-items:center;gap:13px;padding:13px;background:linear-gradient(100deg,#222c21,#19221b);border:1px solid #424d3b}
+.coach-result-mark{width:35px;height:35px;display:grid;place-items:center;flex:none;border:1px solid #77704b;font:800 16px 'Barlow Condensed';color:#d4c69d;background:#282c20}
+.coach-result-mark.win{color:#a8d0a0;border-color:#58764c;background:#1e3323}
+.coach-result-mark.loss{color:#dfa09a;border-color:#7d4b42;background:#351f20}
+.coach-match-info{flex:1;min-width:0}
+.coach-match-info h3{font:700 19px 'Barlow Condensed';margin:0 0 3px;color:#f2e8d2}
+.coach-match-info p{font-size:10px;color:#c1c4b6;margin:0 0 4px}
+.coach-match-info small{font-size:9px;color:#999f91}
+.coach-analyze-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;font-size:9px;padding:11px 13px}
+.coach-footnote{font-size:9px;line-height:1.65;color:#9da58f;margin:13px 0 0;position:relative;z-index:1}
+.coach-dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:27px 15px;text-align:center;background:#1a241c;border:1px dashed #8c7646;color:#d7c18b;position:relative;z-index:1;cursor:pointer}
+.coach-dropzone>strong{font:700 20px 'Barlow Condensed';color:#eee2c5}
+.coach-dropzone>span{font-size:9px;color:#aab29e}
+.coach-dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.coach-upload-action{display:inline-flex;align-items:center;gap:8px;margin-top:7px;padding:10px 17px;background:linear-gradient(180deg,#66532f,#3c3725);border:1px solid #b18d4e;color:#f3d18a!important;font-size:9px!important;font-weight:800;letter-spacing:1px}
+.coach-alert{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;margin:0 0 18px;font-size:11px;line-height:1.5;border:1px solid}
+.coach-alert.error{background:#311f1d;border-color:#89594b;color:#f2c1ae}
+.coach-alert.success{background:#1f3021;border-color:#56774c;color:#c2ddb1}
+.coach-parser-badge{display:inline-flex;align-items:center;padding:7px 9px;background:#2a3326;border:1px solid #78683e;color:#e2c27b;font-size:8px;font-weight:800;letter-spacing:1px;white-space:nowrap}
+.coach-report-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;position:relative;z-index:1}
+.coach-report-title h2{font:700 30px 'Barlow Condensed';margin:5px 0;color:#f0e3c6}
+.coach-report-title p{font-size:10px;color:#aab29e;margin:0}
+.coach-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;position:relative;z-index:1}
+.coach-metric{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:15px;background:linear-gradient(145deg,#263127,#1a231b);border:1px solid #4b5842;color:#d8b66b}
+.coach-metric>span{font-size:9px;color:#b8c0ad}
+.coach-metric strong{font:700 29px 'Barlow Condensed';color:#f2e5c8}
+.coach-metric small{font-size:8px;color:#929c8b}
+.coach-report-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;position:relative;z-index:1}
+.coach-report-block{margin-top:20px;position:relative;z-index:1}
+.coach-report-columns .coach-report-block{margin-top:0}
+.coach-report-block h3{display:flex;align-items:center;gap:9px;font:700 19px 'Barlow Condensed';margin:0 0 10px;color:#e7d9b9}
+.coach-report-block h3 svg{color:#caaa62}
+.coach-insight{padding:11px 12px;margin-bottom:8px;background:#20291f;border-left:3px solid #8caa65}
+.coach-insight.review{border-left-color:#b58a50}
+.coach-insight b{font-size:10px;color:#e9ddc0}
+.coach-insight p{font-size:9px;line-height:1.6;color:#b1baa7;margin:5px 0 0}
+.coach-age-list{display:flex;flex-wrap:wrap;gap:9px}
+.coach-age-item{min-width:120px;display:flex;flex-direction:column;gap:6px;padding:11px 13px;background:#20291f;border:1px solid #596448}
+.coach-age-item span{font-size:9px;color:#aeb6a2}
+.coach-age-item b{font:700 22px 'Barlow Condensed';color:#e1c078}
+.coach-timeline{max-height:460px;overflow:auto;border:1px solid #46513e;background:#182019}
+.coach-timeline-row{display:grid;grid-template-columns:60px 105px 1fr;gap:10px;padding:9px 11px;border-bottom:1px solid #303c30;font-size:9px}
+.coach-timeline-row time{color:#d2b16c;font-variant-numeric:tabular-nums}
+.coach-timeline-row b{color:#e2dcc8}
+.coach-timeline-row span{color:#aeb7a6;overflow-wrap:anywhere}
+.coach-limitations{margin-top:20px;padding:14px 16px;background:#252a22;border:1px solid #555743;position:relative;z-index:1}
+.coach-limitations>b{font:700 17px 'Barlow Condensed';color:#e0c17d}
+.coach-limitations ul{margin:8px 0 0;padding-left:18px;color:#adb5a4;font-size:9px;line-height:1.8}
+.coach-spinner{display:inline-block;width:13px;height:13px;border:2px solid #a99462;border-right-color:transparent;border-radius:50%;animation:coach-spin .7s linear infinite}
+@keyframes coach-spin{to{transform:rotate(360deg)}}
+@media(max-width:760px){
+ .coach-page{padding:0 12px}.coach-hero,.coach-lookup,.coach-matches,.coach-upload,.coach-report{padding:16px}
+ .coach-search-form{flex-direction:column}.coach-search-form .create-btn{justify-content:center;min-height:42px}
+ .coach-match{flex-wrap:wrap;gap:9px}.coach-match-info{width:calc(100% - 55px);flex:1}
+ .coach-analyze-btn{width:100%;margin-top:4px}.coach-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .coach-report-columns{grid-template-columns:1fr}.coach-report-title{align-items:flex-start}
+ .coach-timeline-row{grid-template-columns:48px 80px 1fr;gap:7px;font-size:8px;padding:8px}
+ .coach-header-tag{display:none}
+}
