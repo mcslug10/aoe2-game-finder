@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAoERecentMatches } from "@/lib/aoe2-coach";
+import { getCompanionRecentMatches } from "@/lib/aoe2-coach";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "profile_id inválido." }, { status: 400 });
   }
   try {
-    const data = await getAoERecentMatches(profileId);
+    const data = await getCompanionRecentMatches(profileId);
     return NextResponse.json(data, {
       headers: { "Cache-Control": "private, max-age=0, s-maxage=120, stale-while-revalidate=60" },
     });
