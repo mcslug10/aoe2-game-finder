@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity } from "lucide-react";
 import type { RatingHistory, RatingHistoryPoint, RatingHistorySeries } from "@/lib/aoe2-coach-ratings";
 
 type ChartSeries = {
