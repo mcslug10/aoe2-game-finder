@@ -227,7 +227,8 @@ export default function CoachPage() {
 
     {report&&<section className="panel coach-report">
       <div className="coach-report-title"><div><div className="eyebrow muted">RELATÓRIO DE DESEMPENHO</div><h2>{report.selectedPlayer?.name||"Jogador analisado"}</h2><p>{report.map||"Mapa não identificado"} · {durationLabel(report.durationSeconds)} · {report.gameType||"Modo não identificado"}</p></div><span className="coach-parser-badge">PARSER {report.parserVersion}</span></div>
-      {report.evaluation && <>\n      <div className="coach-evaluation">
+      {report.evaluation && <>
+      <div className="coach-evaluation">
         <div className="coach-score-card">
           <div className="eyebrow muted">PONTUAÇÃO DE EXECUÇÃO · BETA</div>
           <div className="coach-score-number">{report.evaluation.overallScore ?? "—"}<small>/100</small></div>
@@ -303,6 +304,7 @@ export default function CoachPage() {
         <b><CheckCircle2 size={16}/> O que você fez bem</b>
         {report.evaluation.strengths.map((item,i)=><span key={i}>• {item}</span>)}
       </div>}
+      </>}
 
       <div className="coach-metric-grid">
         <div className="coach-metric"><Gauge size={19}/><span>eAPM</span><strong>{report.metrics.eapm??"—"}</strong><small>Ações efetivas/min</small></div>
