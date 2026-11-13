@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, Castle, Copy, ExternalLink, Globe2, RefreshCw, Search, Swords, Users } from "lucide-react";
 
 type Language = "pt" | "en";
@@ -139,8 +140,8 @@ export default function BrowserPage() {
 
   return <main className="shell browser-page">
     <header className="topbar browser-topbar">
-      <a className="brand" href="/"><span className="brand-mark"><Castle size={23}/></span><span>AOE2 <b>GAME FINDER</b><small>THE COMMUNITY MATCH HUB</small></span></a>
-      <a className="browser-back" href="/"><ArrowLeft size={15}/>{t.back}</a>
+      <Link className="brand" href="/"><span className="brand-mark"><Castle size={23}/></span><span>AOE2 <b>GAME FINDER</b><small>THE COMMUNITY MATCH HUB</small></span></Link>
+      <Link className="browser-back" href="/"><ArrowLeft size={15}/>{t.back}</Link>
       <label className="language-picker"><Globe2 size={14}/><select value={language} onChange={(event) => {
         const value = event.target.value as Language;
         setLanguage(value);
@@ -202,9 +203,9 @@ export default function BrowserPage() {
         </div>
       </article>)}
       {!filteredCommunity.length && <div className="empty">{t.noCommunity}</div>}
-      <p className="browser-footnote"><a href="/">{t.openSite}</a></p>
+      <p className="browser-footnote"><Link href="/">{t.openSite}</Link></p>
     </section>}
 
-    <footer><a className="brand footer-brand" href="/"><span className="brand-mark"><Castle size={18}/></span><span>AOE2 <b>GAME FINDER</b><small>FIND YOUR NEXT GG.</small></span></a><span>COMMUNITY PROJECT · NOT AFFILIATED WITH MICROSOFT</span></footer>
+    <footer><Link className="brand footer-brand" href="/"><span className="brand-mark"><Castle size={18}/></span><span>AOE2 <b>GAME FINDER</b><small>FIND YOUR NEXT GG.</small></span></Link><span>COMMUNITY PROJECT · NOT AFFILIATED WITH MICROSOFT</span></footer>
   </main>;
 }
