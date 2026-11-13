@@ -23,7 +23,7 @@ const starterMessages: ChatMessage[] = [
 
 const translations = {
   pt: {
-    navFind: "Encontrar partida", navChat: "Chat global", navHow: "Como funciona", community: "CENTRAL DA COMUNIDADE", chooseNick: "Escolher nickname",
+    navFind: "Encontrar partida", navChat: "Chat global", navHow: "Como funciona", discordTitle: "Entre no Discord oficial", discordDesc: "Converse com a comunidade, encontre jogadores, organize partidas e fique por dentro das novidades do AOE2 Game Finder.", discordButton: "ENTRAR NO DISCORD", community: "CENTRAL DA COMUNIDADE", chooseNick: "Escolher nickname",
     eyebrow: "O CAMPO DE BATALHA ESTÁ CHAMANDO", heroLine1: "SUA PRÓXIMA", heroLine2: "GG COMEÇA AQUI.", heroDesc1: "Encontre sua próxima partida de Age of Empires II: Definitive Edition.", heroDesc2: "Conheça jogadores, forme equipes e entre no jogo.", findMatch: "ENCONTRAR PARTIDA", joinChat: "ENTRAR NO CHAT", global: "GLOBAL", communityLabel: "COMUNIDADE", matchmaking: "BUSCA DE PARTIDAS 24/7", definitive: "EDIÇÃO DEFINITIVA",
     matchmakingEyebrow: "ENCONTRE JOGADORES", findBattle: "Encontre sua batalha.", intro: "Salas abertas, novos companheiros e partidas organizadas em poucos minutos.", worldwide: "Mundo todo", openCommunity: "Comunidade aberta", moderated: "Chat moderado",
     lobbies: "SALAS ABERTAS", openMatches: "Partidas abertas", createRoom: "Criar sala", search: "Buscar salas, mapas ou jogadores...", allModes: "Todos os modos", allRegions: "Todas as regiões", anyRegion: "Qualquer região", players: "JOGADORES", hostedBy: "CRIADA POR", viewRoom: "VER SALA", noRooms: "Nenhuma sala encontrada com esses filtros. Tente outra busca.", demo: "PRÉVIA DEMONSTRATIVA · As salas serão compartilhadas entre os jogadores após a ativação do servidor.",
@@ -32,7 +32,7 @@ const translations = {
     newLobby: "COMECE UMA NOVA SALA", roomTitle: "Nome da sala", roomTitlePlaceholder: "Ex.: Arabia 1v1 treino", gameMode: "Modo de jogo", map: "Mapa", eloRange: "Faixa de ELO", anyElo: "Qualquer ELO", below1000: "Abaixo de 1000", createLobby: "CRIAR SALA", needNick: "Entre no chat com um nickname antes de criar uma sala.", roomRequest: "Solicitação para a sala", contactHost: "Fale com o anfitrião no chat global.", waiting: "Aguardando", regionAmericas: "Américas", regionEurope: "Europa", regionAsia: "Ásia", regionAny: "Qualquer região", room1: "Arábia • treino 1v1", room2: "Partida em equipe na Arena", room3: "Floresta Negra • descontraída", room4: "Aquecimento ranqueado mapa aleatório", sample1: "Alguém para 1v1 na Arábia? 1300 ELO", sample2: "Procurando mais dois jogadores para 4v4 na Arena.", sample3: "2v2 na Floresta Negra, partida tranquila?", sample4: "Bem-vindo! Encontre jogadores e organize uma partida.", you: "Você", system: "SISTEMA"
   },
   en: {
-    navFind: "Find a game", navChat: "Global chat", navHow: "How it works", community: "COMMUNITY HUB", chooseNick: "Choose nickname",
+    navFind: "Find a game", navChat: "Global chat", navHow: "How it works", discordTitle: "Join the official Discord", discordDesc: "Chat with the community, find players, organize matches and stay up to date with AOE2 Game Finder news.", discordButton: "JOIN THE DISCORD", community: "COMMUNITY HUB", chooseNick: "Choose nickname",
     eyebrow: "THE BATTLEFIELD IS CALLING", heroLine1: "YOUR NEXT", heroLine2: "GG STARTS HERE.", heroDesc1: "Find your next Age of Empires II: Definitive Edition match.", heroDesc2: "Meet players, build teams and get into the game.", findMatch: "FIND A MATCH", joinChat: "JOIN THE CHAT", global: "GLOBAL", communityLabel: "COMMUNITY", matchmaking: "24/7 PLAYER MATCHMAKING", definitive: "DEFINITIVE EDITION",
     matchmakingEyebrow: "COMMUNITY MATCHMAKING", findBattle: "Find your battle.", intro: "Open rooms, meet your teammates and organize a match in minutes.", worldwide: "Worldwide", openCommunity: "Open community", moderated: "Moderated chat",
     lobbies: "LIVE LOBBIES", openMatches: "Open matches", createRoom: "Create room", search: "Search rooms, maps or players...", allModes: "All modes", allRegions: "All regions", anyRegion: "Any region", players: "PLAYERS", hostedBy: "HOSTED BY", viewRoom: "VIEW ROOM", noRooms: "No rooms match these filters. Try another search.", demo: "DEMO PREVIEW · Room listings become shared across users after backend activation.",
@@ -103,7 +103,7 @@ export default function Home() {
   }
 
   return (
-    <main className="shell">
+    <main className="shell game-ui">
       <header className="topbar">
         <a className="brand" href="#"><span className="brand-mark"><Castle size={23}/></span><span>AOE2 <b>GAME FINDER</b><small>THE COMMUNITY MATCH HUB</small></span></a>
         <nav><a className="active" href="#rooms">{t.navFind}</a><a href="#chat">{t.navChat}</a><a href="#how">{t.navHow}</a></nav>
@@ -133,6 +133,11 @@ export default function Home() {
       </div>
 
       <section className="bottom-info" id="how"><div><CircleHelp size={19}/><span><b>{t.how}</b><small>{t.howDesc}</small></span></div><div><ShieldCheck size={19}/><span><b>{t.communityFirst}</b><small>{t.communityDesc}</small></span></div><div><Globe2 size={19}/><span><b>{t.playWorldwide}</b><small>{t.playDesc}</small></span></div></section>
+      <section className="discord-banner" aria-label={t.discordTitle}>
+        <div className="discord-emblem"><MessageCircle size={27}/></div>
+        <div className="discord-copy"><div className="eyebrow muted">AOE2 GAME FINDER</div><h2>{t.discordTitle}</h2><p>{t.discordDesc}</p></div>
+        <a className="discord-btn" href="https://discord.gg/FjYTVgYf3z" target="_blank" rel="noopener noreferrer"><MessageCircle size={17}/> {t.discordButton}</a>
+      </section>
       <footer><a className="brand footer-brand" href="#"><span className="brand-mark"><Castle size={18}/></span><span>AOE2 <b>GAME FINDER</b><small>{t.footerTag}</small></span></a><span>{t.disclaimer}</span><span>© 2026 AOE2 GAME FINDER</span></footer>
 
       {showCreate && <div className="modal-backdrop" onClick={() => setShowCreate(false)}><div className="modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><div className="eyebrow muted">{t.newLobby}</div><h3>{t.createRoom}</h3></div><button className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}><X size={18}/></button></div>
