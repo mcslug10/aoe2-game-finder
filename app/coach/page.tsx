@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import RatingHistoryChart from "./rating-chart";
+import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
   CheckCircle2, Clock3, FileVideo, Gauge, Medal, Search, Swords, Target, ShieldCheck,
@@ -83,7 +85,7 @@ export default function CoachPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [report, setReport] = useState<Report | null>(null);
+  const [report, setReport] = useState<Report | null>(null);\n  const [ratingHistory, setRatingHistory] = useState<RatingHistory | null>(null);\n  const [loadingRatings, setLoadingRatings] = useState(false);\n  const [ratingsError, setRatingsError] = useState("");
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [busyMatchId, setBusyMatchId] = useState("");
@@ -94,7 +96,7 @@ export default function CoachPage() {
   async function searchPlayer() {
     const clean = nickname.trim();
     if (clean.length < 3) { setError("Digite o nickname exato usado dentro do Age of Empires II (mínimo 3 caracteres)."); return; }
-    setError(""); setNotice(""); setReport(null); setMatches([]); setProfile(null); setLoadingPlayer(true);
+    setError(""); setNotice(""); setReport(null); setMatches([]); setProfile(null); setRatingHistory(null); setRatingsError(""); setLoadingPlayer(true);
     try {
       const response = await fetch("/api/coach/player?nickname=" + encodeURIComponent(clean), { cache:"no-store" });
       const data = await response.json();
@@ -187,8 +189,14 @@ export default function CoachPage() {
           <span><b>{item.alias}</b><small>Perfil {item.profile_id}{item.country?" · "+item.country:""}{item.level?" · Nível "+item.level:""}</small></span><ArrowLeft className="coach-choice-arrow" size={15}/>
         </button>)}
       </div>}
-      {profile&&<div className="coach-selected-profile"><div><span className="coach-label">PERFIL SELECIONADO</span><h3>{profile.alias}</h3><small>Profile ID: {profile.profile_id}{profile.country?" · "+profile.country:""}{profile.games!==undefined?" · "+profile.games+" partidas":""}</small></div><button className="browser-copy" onClick={()=>{setProfile(null);setMatches([]);setReport(null);setProfiles([]);}}>Trocar jogador</button></div>}
+      {profile&&<div className="coach-selected-profile"><div><span className="coach-label">PERFIL SELECIONADO</span><h3>{profile.alias}</h3><small>Profile ID: {profile.profile_id}{profile.country?" · "+profile.country:""}{profile.games!==undefined?" · "+profile.games+" partidas":""}</small></div><button className="browser-copy" onClick={()=>{setProfile(null);setMatches([]);setReport(null);setProfiles([]);setRatingHistory(null);setRatingsError("");}}>Trocar jogador</button></div>}
     </section>
+
+    {profile&&<section className="coach-rating-section">
+      {loadingRatings&&<div className="panel coach-rating-loading"><span className="coach-spinner"/> Carregando evolução de rating X1 e TG...</div>}
+      {ratingsError&&<div className="coach-alert error"><AlertTriangle size={17}/><span>{ratingsError}</span></div>}
+      {ratingHistory&&<RatingHistoryChart history={ratingHistory}/>}
+    </section>}
 
     <section className="panel coach-matches">
       <div className="coach-section-heading"><div className="coach-icon"><CalendarDays size={20}/></div><div><h2>2. Partidas recentes</h2><p>{profile?"Histórico concluído de "+profile.alias+".":"Busque um jogador para listar as partidas disponíveis."}</p></div><span className="coach-count">{matches.length}</span></div>
