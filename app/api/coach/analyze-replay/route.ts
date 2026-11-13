@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    const report = await getCompanionMatchAnalysis(matchId, profileId);
+    const report = await getCompanionMatchAnalysis(matchId, profileId, match);
     return NextResponse.json({ report, match, source: "aoe2companion-analysis" });
   } catch (error) {
     console.error("coach match analysis", error);
