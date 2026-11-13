@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Castle, Copy, ExternalLink, Globe2, Lock, RefreshCw, Search, Swords, Users } from "lucide-react";
+import { ArrowLeft, Castle, Copy, ExternalLink, Globe2, RefreshCw, Search, Swords, Users } from "lucide-react";
 
 type Language = "pt" | "en";
 type GlobalLobby = {
