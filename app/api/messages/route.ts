@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     query = roomId ? query.eq("room_id", roomId) : query.is("room_id", null);
     const { data, error } = await query;
     if (error) throw error;
-    return NextResponse.json({ messages: (data ?? []).map((m) => ({ id: m.id, name: m.players?.nickname ?? "Jogador", text: m.message, time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), playerId: m.player_id })) });
+    return NextResponse.json({ messages: (data ?? []).map((m) => ({ id: m.id, name: m.players?.[0]?.nickname ?? "Jogador", text: m.message, time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), playerId: m.player_id })) });
   } catch (error) { console.error("messages GET", error); return NextResponse.json({ error: "Falha ao carregar mensagens." }, { status: 500 }); }
 }
 export async function POST(req: NextRequest) {
