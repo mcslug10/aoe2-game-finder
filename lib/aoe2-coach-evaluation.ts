@@ -233,7 +233,7 @@ export function evaluateAoE2Match(
     strategyScore = 18;
     strategyReason = "A abertura foi classificada por sinais concretos de unidade e/ou construção, e não apenas pelo resultado da partida.";
   } else if (strategyStrength === 2) {
-    strategyScore = 18;
+    strategyScore = 14;
     strategyReason = "Há sinais de composição e construções compatíveis, mas a quantidade de unidades ainda deixa margem para outra leitura.";
   } else if (strategyStrength === 1) {
     strategyScore = 10;
@@ -353,6 +353,7 @@ export function evaluateAoE2Match(
     category("military", "Composição e tecnologias", militaryScore, 15, militaryReason),
     category("reaction", "Reação à pressão adversária", reactionScore, 15, reactionSummary,
       reactionScore === null ? "not_applicable" : "scored"),
+    category("activity", "Consistência de atividade (eAPM)", activityScore, 10, activityReason),
   ];
 
   const mapName = norm(match.map ?? "");
