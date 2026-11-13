@@ -228,3 +228,46 @@ footer{border-top:1px solid #62583a;padding:22px 0 27px;display:flex;justify-con
  .coach-reaction-flow{grid-template-columns:1fr 20px 1fr;gap:5px}
  .coach-reaction-flow b{font-size:15px}
 }
+
+
+/* AOE2 Coach: player ladder history */
+.coach-rating-panel{padding:23px;margin-bottom:18px;position:relative;z-index:1}
+.coach-rating-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.coach-rating-range{display:flex;gap:5px;flex:none}
+.coach-rating-range button{padding:7px 9px;background:#1b241c;border:1px solid #4d5943;color:#aeb7a4;font-size:8px;font-weight:800;cursor:pointer}
+.coach-rating-range button.active{background:#4b3c24;border-color:#b08c51;color:#f0d18b}
+.coach-rating-current{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0}
+.coach-rating-stat{display:grid;grid-template-columns:1fr auto;gap:5px 12px;padding:13px 14px;background:#1d271f;border:1px solid #46513e}
+.coach-rating-stat>span{display:flex;align-items:center;gap:8px;font-size:9px;color:#c6cbb9}
+.coach-rating-stat>span i,.coach-rating-legend i{width:8px;height:8px;display:inline-block;border-radius:50%;background:#d7b66d;flex:none}
+.coach-rating-stat.tg>span i,.coach-rating-legend .tg i{background:#7ab5a4}
+.coach-rating-stat>strong{grid-column:2;grid-row:1/3;align-self:center;font:700 30px 'Barlow Condensed';color:#f1d18b}
+.coach-rating-stat.tg>strong{color:#9ccfbd}
+.coach-rating-stat>small{font-size:8px;color:#9fa995}
+.coach-rating-chart-wrap{padding:9px 5px 0;background:#171f19;border:1px solid #3d4938;overflow:hidden}
+.coach-rating-svg{display:block;width:100%;height:auto;min-height:220px;overflow:visible}
+.coach-rating-gridline{stroke:#394437;stroke-width:1;stroke-dasharray:3 5}
+.coach-rating-gridline.vertical{stroke:#303b31;stroke-dasharray:2 6}
+.coach-rating-axis{stroke:#697356;stroke-width:1.2}
+.coach-rating-axis-label{fill:#9da790;font-size:10px;font-family:Arial,sans-serif}
+.coach-rating-line polyline{fill:none;stroke:#d7b66d;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.coach-rating-line circle{fill:#d7b66d;stroke:#1a211a;stroke-width:1.4;vector-effect:non-scaling-stroke}
+.coach-rating-line.tg polyline{stroke:#7ab5a4}
+.coach-rating-line.tg circle{fill:#7ab5a4}
+.coach-rating-legend{display:flex;align-items:center;flex-wrap:wrap;gap:15px;padding:12px 5px 0}
+.coach-rating-legend span{display:inline-flex;align-items:center;gap:7px;font-size:9px;color:#d1d6c5}
+.coach-rating-legend .tg i{background:#7ab5a4}
+.coach-rating-legend small{margin-left:auto;font-size:8px;color:#909b8b}
+.coach-rating-empty{padding:24px;text-align:center;background:#1b241c;border:1px solid #47523f;color:#abb49f;font-size:10px}
+.coach-rating-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:22px;margin-bottom:18px;color:#b4bea8;font-size:10px}
+.coach-rating-section{margin-bottom:18px}
+@media(max-width:760px){
+ .coach-rating-panel{padding:15px}
+ .coach-rating-heading{display:block}
+ .coach-rating-range{margin:0 0 12px}
+ .coach-rating-current{grid-template-columns:1fr}
+ .coach-rating-stat>strong{font-size:26px}
+ .coach-rating-svg{min-height:190px}
+ .coach-rating-axis-label{font-size:9px}
+ .coach-rating-legend small{width:100%;margin-left:0}
+}
