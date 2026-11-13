@@ -160,7 +160,6 @@ export function evaluateAoE2Match(
   const feudalTowers = feudalBuildings.filter((item) => includesAny(item.unit, ["watch tower", "guard tower", "keep"])).length;
   const hasRange = hasName(feudalBuildings, ["archery range"]);
   const hasStable = hasName(feudalBuildings, ["stable"]);
-  const hasBarracks = hasName(feudalBuildings, ["barracks"]);
   const hasSiegeWorkshop = hasName(feudalBuildings, ["siege workshop"]);
   const hasMonastery = hasName(feudalBuildings, ["monastery"]);
   const hasDonjon = hasName(feudalBuildings, ["donjon"]);
