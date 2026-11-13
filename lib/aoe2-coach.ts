@@ -1,3 +1,5 @@
+import { evaluateAoE2Match } from "@/lib/aoe2-coach-evaluation";
+
 const BASE_URL = "https://data.aoe2companion.com/api/";
 const USER_AGENT = "AOE2-Game-Finder/1.0 (https://aoe2-game-finder.vercel.app)";
 
@@ -28,6 +30,8 @@ type CompanionMatch = {
   mapName?: string;
   gameModeName?: string;
   leaderboardName?: string;
+  speedName?: string;
+  speedFactor?: number;
   teams?: Array<{ teamId?: number; players?: CompanionPlayer[] }>;
 };
 
@@ -42,6 +46,7 @@ type CompanionAnalysisPlayer = {
   queuedUnits?: Array<{ timestamp: string; unit: string; amount?: number }>;
   queuedTechs?: Array<{ timestamp: string; unit: string }>;
   queuedBuildings?: Array<{ timestamp: string; unit: string }>;
+  queuedWalls?: Array<{ timestamp: string }>;
   timeseries?: Array<{ timestamp: string; totalObjects: number; totalResources: number }>;
   resignation?: { timestamp: string };
 };
@@ -178,12 +183,18 @@ function timeLabel(value: string | undefined) {
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
-export async function getCompanionMatchAnalysis(matchId: number, profileId: number) {
+export async function getCompanionMatchAnalysis(
+  matchId: number,
+  profileId: number,
+  matchContext: { map?: string; gameModeName?: string; speedName?: string; speedFactor?: number; teams?: Array<{ teamId?: number; players?: Array<{ profileId: number }> }> },
+) {
   const payload = await companionGet(`matches/${matchId}/analysis`, { language: "en" }) as CompanionAnalysis;
   if (payload.error) throw new Error(payload.error);
-  const selected = (payload.players ?? []).find((player) => Number(player.profileId) === profileId);
+  const analysisPlayers = payload.players ?? [];
+  const selected = analysisPlayers.find((player) => Number(player.profileId) === profileId);
   if (!selected) throw new Error("A análise desta partida não contém o perfil selecionado. O replay pode estar indisponível ou não incluir esse participante.");
 
+  const evaluation = evaluateAoE2Match(selected, analysisPlayers, matchContext);
   const ageUps = (selected.uptimes ?? []).map((uptime) => ({
     age: String(uptime.age).replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
     timeSeconds: timestampToSeconds(uptime.timestamp),
@@ -260,7 +271,8 @@ export async function getCompanionMatchAnalysis(matchId: number, profileId: numb
   return {
     fileName: `Match_${matchId}`, parser: "AoE II Companion",
     parserVersion: String(payload.version ?? "API"), map: payload.map?.name ?? null,
-    gameType: null, completed: true, rated: null, durationSeconds,
+    gameType: matchContext.gameModeName ?? null, completed: true, rated: null, durationSeconds,
+    evaluation,
     selectedPlayer: {
       number: 0, name: String(selected.name ?? "Jogador"), civilization: selected.civilization ?? null,
       winner: typeof selected.winner === "boolean" ? selected.winner : null,
@@ -276,7 +288,8 @@ export async function getCompanionMatchAnalysis(matchId: number, profileId: numb
       "eAPM é uma medida de atividade de comandos, não uma nota isolada de habilidade.",
       "As entradas de fila refletem comandos observados; não garantem, por si só, a quantidade final de unidades concluídas.",
       "A avaliação de aldeões ociosos no Centro da Cidade e a curva exata de recursos ainda exigem métricas adicionais e comparação com o estado do jogo.",
-      "A nota global de habilidade será calculada somente após comparação com uma build order e um plano de jogo escolhidos.",
+      "A pontuação de execução é experimental: usa sinais do replay e regras transparentes, não substitui análise humana ou comparação exata com uma build order.",
+      "O tempo de resposta é contado a partir do primeiro comando militar adversário retornado pela análise; não prova o instante em que o jogador viu a ameaça.",
     ],
   };
 }
