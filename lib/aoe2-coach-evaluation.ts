@@ -265,8 +265,7 @@ export function evaluateAoE2Match(
   }
 
   const villagerEvents = ownUnits.filter((item) => includesAny(item.unit, ["villager"])).sort((a, b) => a.at - b.at);
-  const earlyGameSeconds = 15 * 60 / Math.max(1, match.speedFactor ?? 1.7);
-  const earlyVillagers = villagerEvents.filter((item) => item.at <= earlyGameSeconds);
+  const earlyVillagers = villagerEvents.filter((item) => item.at <= 15 * 60);
   const villagerGaps: Array<{ from: number; to: number; gap: number }> = [];
   for (let i = 1; i < earlyVillagers.length; i++) {
     const previous = earlyVillagers[i - 1];
@@ -320,7 +319,8 @@ export function evaluateAoE2Match(
     const ownCounterEvents = ownUnits.filter((item) => includesAny(item.unit, counters) && item.at >= threat.at - 30 && item.at <= threat.at + 7 * 60);
     const ownWallEvents = (selected.queuedWalls ?? [])
       .map((item) => ({ at: seconds(item.timestamp) }))
-      .filter((item): item is { at: number } => item.at !== null && item.at >= threat.at - 30 && item.at <= threat.at + 7 * 60);
+      .filter((item): item is { at: number } => item.at !== null && item.at >= threat.at - 30 && item.at <= threat.at + 7 * 60)
+      .sort((a, b) => a.at - b.at);
     const counter = ownCounterEvents[0];
     const wallAt = ownWallEvents[0]?.at;
     const counterAt = counter?.at ?? wallAt;
@@ -367,13 +367,16 @@ export function evaluateAoE2Match(
     const idx = categories.findIndex((item) => item.id === "timing");
     categories[idx] = category("timing", "Timing das eras", null, 20, "A partida se encaixa no cenário de referência, mas o evento de avanço à Feudal não foi retornado.", "insufficient_data");
   }
-  if (benchmarkApplicable && feudal !== null) {
-    const speedFactor = match.speedFactor ?? 1;
-    const inGameFeudal = feudal * speedFactor;
+  if (benchmarkApplicable && feudal !== null && strategy.includes("Fast Castle")) {
+    feudalDisplay = clock(feudal);
+    const idx = categories.findIndex((item) => item.id === "timing");
+    categories[idx] = category("timing", "Timing das eras", null, 20, "Abertura Fast Castle exige comparar o clique para Castelos com uma build order específica; por isso esta referência genérica não atribui nota.", "not_applicable");
+    benchmarkNote = "O timing Feudal é mostrado, mas não pontuado em Fast Castle sem uma referência adequada para o clique aos Castelos.";
+  } else if (benchmarkApplicable && feudal !== null) {
+    const inGameFeudal = feudal;
     feudalDisplay = clock(inGameFeudal);
     let target = 9 * 60 + 15;
     if (strategy.includes("Archer") || strategy.includes("Men-at-Arms")) target = 8 * 60 + 50;
-    if (strategy.includes("Fast Castle")) target = 11 * 60 + 45;
     if (strategy.includes("Scout")) target = 9 * 60 + 15;
     targetFeudalDisplay = clock(target);
     const delta = Math.abs(inGameFeudal - target);
