@@ -8,12 +8,12 @@ import {
   Upload, Users, Zap,
 } from "lucide-react";
 
-type Profile = { profile_id: number; alias: string; name?: string; country?: string; level?: number };
+type Profile = { profile_id: number; alias: string; name?: string; country?: string; level?: number; games?: number };
 type Match = {
   id: string; title: string; map: string; mapRaw: string; gameTypeId: number | null;
   playerCount: number; startedAt: string | null; completedAt: string | null;
   durationSeconds: number | null; result: "win" | "loss" | "unknown";
-  civilizationId: number | null; ratingBefore: number | null; ratingAfter: number | null;
+  civilizationId: number | null; civilizationName?: string | null; ratingBefore: number | null; ratingAfter: number | null;
   ratingChange: number | null; participants: Array<{profileId:number;nickname:string;country:string|null;civilizationId:number|null;teamId:number|null;won:boolean}>;
   includesPlayer: boolean;
 };
@@ -143,7 +143,7 @@ export default function CoachPage() {
           <span><b>{item.alias}</b><small>Perfil {item.profile_id}{item.country?" · "+item.country:""}{item.level?" · Nível "+item.level:""}</small></span><ArrowLeft className="coach-choice-arrow" size={15}/>
         </button>)}
       </div>}
-      {profile&&<div className="coach-selected-profile"><div><span className="coach-label">PERFIL SELECIONADO</span><h3>{profile.alias}</h3><small>Profile ID: {profile.profile_id}{profile.country?" · "+profile.country:""}</small></div><button className="browser-copy" onClick={()=>{setProfile(null);setMatches([]);setReport(null);setProfiles([]);}}>Trocar jogador</button></div>}
+      {profile&&<div className="coach-selected-profile"><div><span className="coach-label">PERFIL SELECIONADO</span><h3>{profile.alias}</h3><small>Profile ID: {profile.profile_id}{profile.country?" · "+profile.country:""}{profile.games!==undefined?" · "+profile.games+" partidas":""}</small></div><button className="browser-copy" onClick={()=>{setProfile(null);setMatches([]);setReport(null);setProfiles([]);}}>Trocar jogador</button></div>}
     </section>
 
     <section className="panel coach-matches">
@@ -156,7 +156,7 @@ export default function CoachPage() {
           <article className="coach-match" key={match.id}>
             <div className={"coach-result-mark "+match.result}>{match.result==="win"?"V":match.result==="loss"?"D":"—"}</div>
             <div className="coach-match-info"><h3>{match.map}</h3><p>{match.title} · {match.playerCount} jogadores · {durationLabel(match.durationSeconds)}</p>
-              <small>{dateLabel(match.completedAt)}{match.civilizationId!==null?" · Civilização ID "+match.civilizationId:""}{match.ratingChange!==null?" · ELO "+(match.ratingChange>0?"+":"")+match.ratingChange:""}</small>
+              <small>{dateLabel(match.completedAt)}{match.civilizationName?" · "+match.civilizationName:""}{match.ratingChange!==null?" · ELO "+(match.ratingChange>0?"+":"")+match.ratingChange:""}</small>
             </div>
             <button className="join-btn coach-analyze-btn" disabled={busyMatchId!==""} onClick={()=>void analyzeMatch(match)}>
               {busyMatchId===match.id?<span className="coach-spinner"/>:<Zap size={14}/>} ANALISAR REPLAY
@@ -164,7 +164,7 @@ export default function CoachPage() {
           </article>
         ))}
       </div>
-      {profile&&<p className="coach-footnote">A lista vem do histórico de partidas concluídas. O download automático depende de o replay ainda estar disponível no serviço da Microsoft.</p>}
+      {profile&&<p className="coach-footnote">A lista e a análise vêm do histórico e dos dados de replay disponíveis no AoE II Companion. Nem todas as partidas necessariamente têm análise publicada.</p>}
     </section>
 
     <section className="panel coach-upload">
