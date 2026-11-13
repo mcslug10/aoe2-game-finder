@@ -1,65 +1,142 @@
 import { NextResponse } from "next/server";
+import { inflateSync } from "node:zlib";
 
 export const runtime = "nodejs";
 export const revalidate = 20;
 
-// The World's Edge community endpoint is undocumented and may change.
-// Requests are server-side and cached to avoid making every visitor poll upstream.
-const ENDPOINT = "https://aoe-api.worldsedgelink.com/community/advertisement/findAdvertisements?title=age2&start=0";
-type RawLobby = {
-  id?: number | string;
-  name?: string;
-  num_slots?: number;
-  game_type?: number;
-  map_type?: number;
-  has_password?: boolean;
-  players?: Array<{ name?: string; alias?: string; profile_id?: number; user_id?: number }>;
-  slots?: Array<{ name?: string; alias?: string; profile_id?: number; user_id?: number; status?: number }>;
-  region?: string;
-  [key: string]: unknown;
+const API = "https://aoe-api.worldsedgelink.com/community/advertisement/findAdvertisements?title=age2";
+type Avatar = { profile_id?: number; alias?: string; country?: string };
+type MatchMember = { profile_id?: number; teamid?: number };
+type Match = {
+  id?: number;
+  description?: string;
+  mapname?: string;
+  options?: string;
+  maxplayers?: number;
+  passwordprotected?: number;
+  host_profile_id?: number;
+  matchmembers?: MatchMember[];
+  relayserver_region?: string;
 };
-function extractLobbies(payload: unknown): RawLobby[] {
-  if (!payload || typeof payload !== "object") return [];
-  const root = payload as Record<string, unknown>;
-  const result = root.result && typeof root.result === "object" ? root.result as Record<string, unknown> : root;
-  const candidates = [result.advertisements, result.matches, result.lobbies, root.advertisements, root.matches];
-  const found = candidates.find(Array.isArray);
-  return (found as RawLobby[] | undefined) ?? [];
-}
-function mapMode(value: number | undefined): string {
-  const modes: Record<number, string> = { 0: "Random Map", 1: "Death Match", 2: "Empire Wars", 3: "Battle Royale" };
-  return value == null ? "Modo não identificado" : modes[value] ?? `Modo ${value}`;
-}
-export async function GET() {
+type AdvertisementPage = { matches?: Match[]; avatars?: Avatar[]; result?: { code?: number; message?: string } };
+
+const gameTypes: Record<number, string> = {
+  0: "Random Map", 1: "Regicide", 2: "Death Match", 3: "Scenario",
+  6: "King of the Hill", 7: "Wonder Race", 8: "Defend the Wonder",
+  9: "Turbo Random Map", 10: "Capture the Relic", 11: "Sudden Death",
+  12: "Battle Royale", 13: "Empire Wars", 15: "Co-Op Campaign",
+};
+const mapTypes: Record<number, string> = {
+  10875:"Arabia",10876:"Archipelago",10877:"Baltic",10878:"Black Forest",
+  10879:"Coastal",10880:"Continental",10882:"Fortress",10883:"Gold Rush",
+  10885:"Islands",10895:"Arena",10897:"Oasis",10901:"Nomad",
+  10914:"Acropolis",10915:"Budapest",10918:"Golden Pit",10919:"Hideout",
+  10920:"Hill Fort",10921:"Lombardia",10922:"Steppe",10923:"Valley",
+  10924:"MegaRandom",10945:"Michi",
+};
+
+function decodeOptions(encoded?: string): Map<number, string> {
+  const values = new Map<number, string>();
+  if (!encoded) return values;
   try {
-    const response = await fetch(ENDPOINT, {
-      headers: { "Accept": "application/json", "User-Agent": "AOE2-Game-Finder/1.0 (community lobby browser)" },
+    const compressed = Buffer.from(encoded, "base64");
+    const unzipped = inflateSync(compressed).toString("ascii").replace(/"/g, "");
+    const decoded = Buffer.from(unzipped, "base64").toString("ascii");
+    for (const part of decoded.split(/[\x00-\x1f]+/)) {
+      const separator = part.indexOf(":");
+      if (separator <= 0) continue;
+      const key = Number(part.slice(0, separator));
+      if (Number.isFinite(key)) values.set(key, part.slice(separator + 1));
+    }
+  } catch {
+    // Keep the lobby visible even if a newer game build changes the option encoding.
+  }
+  return values;
+}
+
+async function fetchPage(start: number): Promise<AdvertisementPage | null> {
+  try {
+    const response = await fetch(`${API}&start=${start}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AOE2-Game-Finder/1.0 (+https://aoe2-game-finder.vercel.app)",
+      },
       next: { revalidate: 20 },
       signal: AbortSignal.timeout(10000),
     });
-    if (!response.ok) {
-      return NextResponse.json({ lobbies: [], sourceStatus: "unavailable", message: "O serviço de lobbies está temporariamente indisponível." }, { status: 200 });
+    if (!response.ok) return null;
+    return (await response.json()) as AdvertisementPage;
+  } catch (error) {
+    console.error("AoE2 lobby feed page", start, error);
+    return null;
+  }
+}
+
+export async function GET() {
+  try {
+    // The community endpoint is paginated. Keep the polling bounded and server-cached.
+    const pages = await Promise.all([0, 100, 200].map(fetchPage));
+    const validPages = pages.filter((page): page is AdvertisementPage => page !== null && Array.isArray(page.matches));
+    if (!validPages.length) {
+      return NextResponse.json({
+        lobbies: [],
+        sourceStatus: "unavailable",
+        message: "O serviço global de lobbies está temporariamente indisponível.",
+      });
     }
-    const payload: unknown = await response.json();
-    const lobbies = extractLobbies(payload).map((item) => {
-      const slots = Array.isArray(item.slots) ? item.slots : Array.isArray(item.players) ? item.players : [];
-      const players = slots.map((slot) => slot.alias ?? slot.name ?? (slot.profile_id ? `Jogador ${slot.profile_id}` : null)).filter((name): name is string => Boolean(name));
-      const id = String(item.id ?? "");
-      return {
+
+    const matches = validPages.flatMap((page) => page.matches ?? []);
+    const avatars = new Map<number, Avatar>();
+    for (const page of validPages) {
+      for (const avatar of page.avatars ?? []) {
+        if (typeof avatar.profile_id === "number") avatars.set(avatar.profile_id, avatar);
+      }
+    }
+
+    const seen = new Set<string>();
+    const lobbies = matches.flatMap((match) => {
+      const id = String(match.id ?? "");
+      if (!id || seen.has(id)) return [];
+      seen.add(id);
+      const options = decodeOptions(match.options);
+      const gameTypeId = Number(options.get(5));
+      const mapTypeId = Number(options.get(10));
+      const members = [...(match.matchmembers ?? [])].sort((a, b) =>
+        Number(b.profile_id === match.host_profile_id) - Number(a.profile_id === match.host_profile_id),
+      );
+      const players = members.map((member) => {
+        const avatar = typeof member.profile_id === "number" ? avatars.get(member.profile_id) : undefined;
+        return avatar?.alias?.trim() || (member.profile_id ? `Jogador ${member.profile_id}` : "Jogador");
+      });
+      const capacity = Number(match.maxplayers ?? 0);
+      if (capacity > 0 && players.length >= capacity) return [];
+      const region = match.relayserver_region || "Global";
+      return [{
         id,
-        name: String(item.name ?? "Partida sem título").trim() || "Partida sem título",
+        name: match.description?.trim() || "Partida sem título",
+        map: mapTypes[mapTypeId] || match.mapname?.trim() || "Mapa não identificado",
+        mode: gameTypes[gameTypeId] || "Modo não identificado",
         players,
         playerCount: players.length,
-        slots: Number.isFinite(item.num_slots) ? Number(item.num_slots) : slots.length,
-        mode: mapMode(typeof item.game_type === "number" ? item.game_type : undefined),
-        passwordProtected: Boolean(item.has_password),
-        region: typeof item.region === "string" ? item.region : "Global",
-        joinUrl: id ? `aoe2de://0/${encodeURIComponent(id)}` : null,
-      };
-    }).filter((item) => item.id && item.playerCount < item.slots);
-    return NextResponse.json({ lobbies, sourceStatus: "ok", updatedAt: new Date().toISOString() });
+        slots: capacity || players.length,
+        region,
+        passwordProtected: Number(match.passwordprotected ?? 0) > 0,
+        joinUrl: `aoe2de://0/${encodeURIComponent(id)}`,
+      }];
+    });
+
+    return NextResponse.json({
+      lobbies,
+      sourceStatus: "ok",
+      updatedAt: new Date().toISOString(),
+      partial: validPages.length !== pages.length,
+    });
   } catch (error) {
     console.error("public lobby browser", error);
-    return NextResponse.json({ lobbies: [], sourceStatus: "unavailable", message: "Não foi possível consultar os lobbies globais agora." }, { status: 200 });
+    return NextResponse.json({
+      lobbies: [],
+      sourceStatus: "unavailable",
+      message: "Não foi possível consultar os lobbies globais agora.",
+    });
   }
 }
