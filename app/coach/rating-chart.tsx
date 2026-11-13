@@ -71,8 +71,6 @@ export default function RatingHistoryChart({ history }: { history: RatingHistory
   const yFor = (rating: number) => bottom - ((rating - yMin) / Math.max(1, yMax - yMin)) * (bottom - top);
   const yTicks = Array.from({ length: 5 }, (_, index) => yMin + (yMax - yMin) * index / 4);
   const xTicks = Array.from({ length: 5 }, (_, index) => minTime + (maxTime - minTime) * index / 4);
-  const currentX1 = series[0].current;
-  const currentTg = series[1].current;
   const totalPoints = series.reduce((sum, item) => sum + item.data.length, 0);
 
   return <section className="panel coach-rating-panel">
