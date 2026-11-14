@@ -38,3 +38,11 @@ A view `player_message_leaderboard` criada pelo SQL anterior é usada para o ran
 - Existe um intervalo mínimo simples entre mensagens por jogador.
 - Antes de divulgar o site em grande escala, recomenda-se adicionar rate limit persistente (por exemplo, Upstash/Redis), moderação/denúncia e controle de banimento. O intervalo simples atual não substitui proteção anti-spam robusta.
 - A interface consulta as mensagens a cada 5 segundos. O Realtime pode ser conectado numa etapa posterior para atualização instantânea.
+
+
+## Ciclo de vida das salas
+- Cada sala da comunidade fica aberta por **2 horas** a partir da criação.
+- A página Game Finder atualiza a lista a cada 5 segundos; ao vencer o prazo, a rota do servidor apaga as mensagens da sala e remove a sala do Supabase.
+- O criador também pode encerrá-la manualmente pelo botão **ENCERRAR**. A rota valida o cookie assinado e o campo `rooms.host_id`; outros jogadores não podem fechar a sala.
+- As rotas de listagem e chat também executam a limpeza de salas expiradas, para que uma sala vencida não continue aceitando mensagens.
+- Os nicknames do chat são carregados explicitamente da tabela `players` pelo `player_id` de cada mensagem, evitando depender da forma como o PostgREST devolve relações.
