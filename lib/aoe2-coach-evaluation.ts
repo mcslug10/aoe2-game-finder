@@ -1,4 +1,4 @@
-import { getBuildGuide, type BuildAge } from "@/lib/aoe2-build-guides";
+import { getBuildGuide } from "@/lib/aoe2-build-guides";
 
 type QueueItem = { timestamp: string; unit: string; amount?: number };
 type AgeItem = { timestamp: string; age: string };
@@ -193,6 +193,8 @@ export function evaluateAoE2Match(
   const castleRams = countNames(castleUnits, ["battering ram", "capped ram", "siege ram"]);
   const feudalArmy = feudalArchers + feudalMaa + feudalScouts;
   const fastCastle = feudal !== null && castle !== null && castle - feudal < 9 * 60 && feudalArmy < 4;
+  const ownTechNames = ownTechs.map((item) => norm(item.unit));
+  const hasTech = (...names: string[]) => ownTechNames.some((tech) => names.some((name) => tech.includes(name)));
   const allFishingShips = countNames(ownUnits, ["fishing ship"]);
   const feudalFireGalleys = countNames(feudalUnits, ["fire galley"]);
   const totalFireGalleys = countNames(ownUnits, ["fire galley"]);
@@ -302,8 +304,6 @@ export function evaluateAoE2Match(
   if (strategy === "Fast Castle" && hasCastleTC) alternatives.push("Pode ser Fast Castle → Boom.");
   if (strategy === "Men-at-Arms Rush" && hasRange) alternatives.push("Pode ser Men-at-Arms → Archers, caso arqueiros tenham sido enfileirados depois.");
 
-  const ownTechNames = ownTechs.map((item) => norm(item.unit));
-  const hasTech = (...names: string[]) => ownTechNames.some((tech) => names.some((name) => tech.includes(name)));
   const militaryCount = ownUnits.filter((item) => !includesAny(item.unit, ["villager", "trade cart", "fishing ship", "transport ship", "cow", "sheep"])).length;
   const productionBuildings = ownBuildings.filter((item) => includesAny(item.unit, ["barracks", "archery range", "stable", "siege workshop", "castle"])).length;
   let militaryScore: number | null = null;
