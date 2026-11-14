@@ -150,6 +150,15 @@ export async function GET() {
       }
     }
 
+    // Profile IDs found in current public/open lobbies. This is not a global online-presence feed.
+    const activeProfileIds = [...new Set(
+      Array.from(matches.values()).flatMap((match) =>
+        (match.matchmembers ?? [])
+          .map((member) => Number(member.profile_id))
+          .filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
+      ),
+    )];
+
     const lobbies = Array.from(matches.values()).flatMap((match) => {
       const id = String(match.id ?? "");
       if (!id) return [];
@@ -186,6 +195,7 @@ export async function GET() {
 
     return NextResponse.json({
       lobbies,
+      activeProfileIds,
       sourceStatus: "ok",
       updatedAt: new Date().toISOString(),
       pagesLoaded: pages.length,
