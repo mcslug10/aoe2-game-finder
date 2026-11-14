@@ -1556,3 +1556,438 @@ body:has(.browser-page:not(.coach-page)):before {
   .game-ui .tracked-presence-badge { max-width: 48%; font-size: 8px; }
   .game-ui .tracked-players-note { font-size: 9px; }
 }
+
+
+/* Steam presence and clickable tracked-player profiles */
+.game-ui .tracked-player-card { align-items: center; gap: 11px; }
+.game-ui .tracked-player-identity { gap: 3px; }
+.game-ui .tracked-player-name {
+  display: inline;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  color: #4d2b1c;
+  background: transparent;
+  border: 0;
+  font: 700 15px 'Cinzel', Georgia, serif;
+  text-align: left;
+  cursor: pointer;
+}
+.game-ui .tracked-player-name:hover { color: #8a241d; text-decoration: underline; }
+.game-ui .tracked-player-name:focus-visible { outline: 2px solid #9a2523; outline-offset: 3px; }
+.game-ui .tracked-player-statuses {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  flex: none;
+  max-width: 52%;
+}
+.game-ui .tracked-presence-badge {
+  max-width: 100%;
+  padding: 5px 7px;
+  white-space: normal;
+}
+.game-ui .tracked-presence-badge.steam {
+  font-size: 9px;
+  border-width: 1px;
+}
+.game-ui .tracked-presence-badge.lobby {
+  color: #76583d;
+  background: rgba(218,199,163,.35);
+  border-color: rgba(167,126,76,.55);
+  font-size: 8px;
+  font-weight: 500;
+}
+.game-ui .tracked-presence-badge.offline {
+  color: #783e2e;
+  background: rgba(231,199,177,.65);
+  border-color: #b77a5e;
+}
+.game-ui .tracked-presence-badge.away {
+  color: #80571f;
+  background: rgba(239,218,167,.62);
+  border-color: #b99a5d;
+}
+.game-ui .tracked-presence-dot.offline { background: #a35b3c; }
+.game-ui .tracked-presence-dot.away { background: #bd8c42; }
+@media (max-width: 760px) {
+  .game-ui .tracked-player-card { align-items: flex-start; flex-wrap: wrap; }
+  .game-ui .tracked-player-identity { flex: 1; width: calc(100% - 28px); }
+  .game-ui .tracked-player-statuses {
+    width: calc(100% - 22px);
+    max-width: none;
+    margin-left: 21px;
+    align-items: flex-start;
+  }
+  .game-ui .tracked-presence-badge { max-width: 100%; font-size: 9px; }
+}
+
+/* Age of Empires II Companion-style profile dialog */
+.player-profile-backdrop {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(14,9,5,.78);
+  backdrop-filter: blur(4px);
+}
+.player-profile-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1200px, 100%);
+  max-height: min(92vh, 980px);
+  overflow: hidden;
+  color: #492e1e;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(255,250,231,.65), transparent 66%),
+    repeating-linear-gradient(0deg, rgba(100,64,35,.04) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #ead5b2, #d8bb94);
+  border: 3px solid #8c633a;
+  box-shadow: inset 0 0 0 4px rgba(250,231,194,.65), inset 0 0 0 7px rgba(112,72,39,.18), 0 25px 90px rgba(0,0,0,.58);
+}
+.player-profile-modal:before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  inset: 8px;
+  border: 1px solid rgba(119,77,39,.3);
+}
+.player-profile-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex: none;
+  padding: 19px 25px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,205,130,.045) 0 2px, transparent 2px 42px),
+    linear-gradient(180deg, #5b3921, #382214 62%, #25160e);
+  border-bottom: 3px solid #a77a3e;
+  box-shadow: inset 0 1px rgba(255,238,197,.25), inset 0 -5px 0 rgba(0,0,0,.18), 0 5px 12px rgba(58,34,17,.25);
+}
+.player-profile-heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.player-profile-avatar {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  object-fit: cover;
+  border: 2px solid #d2a75d;
+  border-radius: 50%;
+  box-shadow: 0 2px 9px rgba(0,0,0,.38);
+}
+.player-profile-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: #f2d58d;
+  background: linear-gradient(145deg, #784b27, #321d11);
+}
+.player-profile-identity { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.player-profile-identity .eyebrow { color: #d6b77d; text-shadow: none; font-size: 9px; letter-spacing: 1.6px; }
+.player-profile-identity h2 {
+  margin: 0;
+  color: #f6e5bd;
+  font: 700 clamp(22px, 3vw, 31px)/1.12 'Cinzel', Georgia, serif;
+  text-shadow: 0 2px 3px #160c06;
+}
+.player-profile-identity > small { color: #c9a77b; font-size: 11px; }
+.player-profile-steam-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  padding: 4px 8px;
+  color: #f8eacb;
+  background: rgba(24,15,9,.48);
+  border: 1px solid rgba(197,158,94,.58);
+  font-size: 10px;
+  font-weight: 700;
+}
+.player-profile-steam-status i {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #b58e53;
+}
+.player-profile-steam-status.online i { background: #6fb15a; box-shadow: 0 0 7px #6fb15a; }
+.player-profile-steam-status.offline i { background: #b56b53; }
+.player-profile-steam-status.away i { background: #d7ae59; }
+.player-profile-header-actions { display: flex; align-items: center; gap: 12px; flex: none; }
+.player-profile-external {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 11px;
+  color: #f9e7bf;
+  background: linear-gradient(180deg, #9b211b, #650d12 58%, #4b080e);
+  border: 1px solid #d1a24f;
+  box-shadow: inset 0 1px rgba(255,239,190,.38), 0 2px 5px rgba(67,28,17,.28);
+  font: 700 9px 'Cinzel', Georgia, serif;
+  text-decoration: none;
+}
+.player-profile-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #f5dfb5;
+  background: linear-gradient(145deg, #784b27, #321d11);
+  border: 1px solid #bd9052;
+  cursor: pointer;
+}
+.player-profile-content {
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  padding: 21px 24px 26px;
+  scrollbar-color: #9a774c #dec49e;
+}
+.player-profile-loading,
+.player-profile-error {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-height: 240px;
+  padding: 30px;
+  color: #6f5034;
+  text-align: center;
+}
+.player-profile-spinner { color: #85231e; animation: player-profile-spin 1s linear infinite; }
+@keyframes player-profile-spin { to { transform: rotate(360deg); } }
+.player-profile-error strong { color: #67291f; font: 700 18px 'Cinzel', Georgia, serif; }
+.player-profile-error p { max-width: 560px; font-size: 13px; }
+.player-profile-error button,
+.player-profile-inactive-toggle {
+  padding: 9px 13px;
+  color: #f9e7bf;
+  background: linear-gradient(180deg, #9b211b, #650d12 58%, #4b080e);
+  border: 1px solid #d1a24f;
+  font: 700 10px 'Cinzel', Georgia, serif;
+  cursor: pointer;
+}
+.player-profile-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.player-profile-overview > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  color: #6c4c31;
+  background: rgba(255,246,225,.58);
+  border: 1px solid #a98254;
+}
+.player-profile-overview strong { color: #542d1d; font: 700 20px 'Cinzel', Georgia, serif; }
+.player-profile-overview span { font-size: 11px; }
+.player-profile-private {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  color: #783e2e;
+  background: rgba(231,199,177,.65);
+  border: 1px solid #b77a5e;
+  font-size: 12px;
+}
+.player-profile-ladder-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.player-profile-ladder-card {
+  min-width: 0;
+  padding: 13px 14px;
+  background: rgba(255,246,225,.62);
+  border: 1px solid #a98254;
+  box-shadow: inset 0 1px rgba(255,255,255,.42);
+}
+.player-profile-ladder-card.inactive { opacity: .74; background: rgba(232,218,193,.52); }
+.player-profile-ladder-top {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(130,88,49,.28);
+}
+.player-profile-ladder-top h3 {
+  flex: 1 1 150px;
+  margin: 0;
+  color: #4d2b1c;
+  font: 700 14px 'Cinzel', Georgia, serif;
+}
+.player-profile-ladder-top span,
+.player-profile-ladder-top small { color: #806144; font-size: 9px; }
+.player-profile-ladder-columns {
+  display: grid;
+  grid-template-columns: .92fr 1fr 1fr;
+  gap: 8px;
+  padding-top: 11px;
+}
+.player-profile-rank,
+.player-profile-favorite { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-width: 0; text-align: center; }
+.player-profile-rank { padding-right: 7px; border-right: 1px solid rgba(130,88,49,.24); }
+.player-profile-rank > strong:not(.player-profile-inactive) { color: #46557b; font: 700 26px 'Cinzel', Georgia, serif; }
+.player-profile-rank > small { color: #806144; font-size: 9px; }
+.player-profile-rank .player-profile-inactive { color: #806144; font: 700 14px 'Cinzel', Georgia, serif; padding: 5px 0; }
+.player-profile-ratings { display: grid; grid-template-columns: auto auto; gap: 2px 7px; margin-top: 8px; align-items: baseline; }
+.player-profile-ratings span { color: #806144; font-size: 8px; }
+.player-profile-ratings b { color: #4d2b1c; font-size: 11px; }
+.player-profile-ladder-winrate { margin-top: 7px; color: #475780; font-size: 10px; font-weight: 700; }
+.player-profile-favorite { padding: 0 4px; gap: 3px; }
+.player-profile-favorite > small { color: #806144; font-size: 9px; }
+.player-profile-favorite img {
+  width: 38px;
+  height: 38px;
+  margin: 3px 0;
+  object-fit: contain;
+}
+.player-profile-favorite-icon { height: 44px; display: grid; place-items: center; color: #8b3b25; font-size: 24px; }
+.player-profile-favorite b { color: #4d2b1c; font-size: 10px; line-height: 1.25; }
+.player-profile-favorite strong { color: #475780; font-size: 11px; }
+.player-profile-favorite > small:last-child { font-size: 8px; }
+.player-profile-streak { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 11px; padding-top: 8px; border-top: 1px solid rgba(130,88,49,.22); }
+.player-profile-streak > small { color: #806144; font-size: 9px; }
+.player-profile-streak-dots { display: flex; align-items: center; gap: 5px; }
+.player-profile-streak-dots > span:not(.player-profile-no-streak) { width: 9px; height: 9px; border-radius: 50%; background: #aaa; }
+.player-profile-streak-dots > span.won { background: #526c9a; }
+.player-profile-streak-dots > span.lost { background: #b55b47; }
+.player-profile-streak-dots .player-profile-no-streak { color: #806144; font-size: 8px; }
+.player-profile-streak-dots > b { margin-left: 4px; color: #76583d; font-size: 10px; }
+.player-profile-streak-dots > b.positive { color: #526c3e; }
+.player-profile-streak-dots > b.negative { color: #8b3024; }
+.player-profile-last-played { display: block; margin-top: 7px; color: #806144; font-size: 9px; }
+.player-profile-inactive-toggle { display: block; margin: 14px auto 19px; }
+.player-profile-recent-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 24px 0 11px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #a98254;
+}
+.player-profile-recent-heading .eyebrow { color: #855a35; text-shadow: none; font-size: 9px; }
+.player-profile-recent-heading h3 { margin: 3px 0 0; color: #542d1d; font: 700 22px 'Cinzel', Georgia, serif; }
+.player-profile-recent-heading > span { color: #806144; font-size: 11px; }
+.player-profile-empty { padding: 18px; color: #76583d; text-align: center; font-size: 12px; }
+.player-profile-match-list { display: flex; flex-direction: column; gap: 10px; }
+.player-profile-match-card {
+  padding: 12px;
+  background: rgba(255,246,225,.62);
+  border: 1px solid #a98254;
+}
+.player-profile-match-summary { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.player-profile-map-badge {
+  width: 39px;
+  height: 39px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #f4d58f;
+  background: linear-gradient(145deg, #853d25, #4d2118);
+  border: 1px solid #bd8c4c;
+}
+.player-profile-match-title { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.player-profile-match-title strong { overflow: hidden; color: #4d2b1c; font: 700 13px 'Cinzel', Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }
+.player-profile-match-title span { color: #76583d; font-size: 10px; }
+.player-profile-match-title small { color: #806144; font-size: 9px; }
+.player-profile-result { flex: none; padding: 5px 7px; border: 1px solid #a98254; color: #76583d; font-size: 9px; font-weight: 700; }
+.player-profile-result.win { color: #36592a; background: rgba(204,220,174,.62); border-color: #829a62; }
+.player-profile-result.loss { color: #783e2e; background: rgba(231,199,177,.65); border-color: #b77a5e; }
+.player-profile-rating-delta { min-width: 32px; color: #526c3e; font-size: 11px; font-weight: 700; text-align: right; }
+.player-profile-match-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.player-profile-match-team { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.player-profile-match-player {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  background: rgba(239,225,198,.55);
+  border: 1px solid rgba(167,130,84,.55);
+}
+.player-profile-match-player.self { background: rgba(207,224,177,.55); border-color: #8ea36c; }
+.player-profile-match-player button {
+  overflow: hidden;
+  padding: 0;
+  color: #4d2b1c;
+  background: transparent;
+  border: 0;
+  font-size: 10px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.player-profile-match-player button:hover { color: #8a241d; text-decoration: underline; }
+.player-profile-match-player button:disabled { cursor: default; font-weight: 700; text-decoration: none; }
+.player-profile-match-player > span { color: #76583d; font-size: 9px; white-space: nowrap; }
+.player-profile-match-player > small { color: #526080; font-size: 9px; white-space: nowrap; }
+.player-profile-versus {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: -16px;
+  transform: translate(50%,-50%);
+  padding: 3px 4px;
+  color: #5a3824;
+  background: #dfc59b;
+  border: 1px solid #a98254;
+  font: 700 8px 'Cinzel', Georgia, serif;
+}
+.player-profile-source-note {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+  color: #806144;
+  font-size: 9px;
+}
+.player-profile-source-note svg { color: #8b3b25; flex: none; }
+@media (max-width: 820px) {
+  .player-profile-backdrop { padding: 10px; }
+  .player-profile-modal { max-height: 96vh; }
+  .player-profile-header { padding: 14px 16px; align-items: flex-start; }
+  .player-profile-avatar { width: 48px; height: 48px; }
+  .player-profile-external { font-size: 8px; padding: 7px; }
+  .player-profile-content { padding: 15px; }
+  .player-profile-ladder-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .player-profile-header { gap: 8px; }
+  .player-profile-header-actions { gap: 5px; }
+  .player-profile-external { width: 36px; overflow: hidden; gap: 20px; padding: 7px; font-size: 0; }
+  .player-profile-external svg { flex: none; }
+  .player-profile-close { width: 34px; height: 34px; }
+  .player-profile-identity h2 { font-size: 20px; }
+  .player-profile-identity > small { font-size: 9px; }
+  .player-profile-overview > div { flex: 1 1 42%; justify-content: center; }
+  .player-profile-match-summary { flex-wrap: wrap; }
+  .player-profile-result { margin-left: auto; }
+  .player-profile-match-teams { grid-template-columns: 1fr; gap: 8px; }
+  .player-profile-versus { display: none; }
+  .player-profile-match-player { grid-template-columns: minmax(0,1fr) auto auto; }
+}
