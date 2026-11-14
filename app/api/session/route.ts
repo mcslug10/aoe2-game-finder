@@ -4,6 +4,32 @@ import { getAdminSupabase } from "@/lib/server-supabase";
 import { guestCookieName, signPlayer, verifyPlayer } from "@/lib/session";
 
 export const runtime = "nodejs";
+
+export async function GET() {
+  try {
+    const playerId = await currentPlayerId();
+    if (!playerId) {
+      return NextResponse.json({ error: "Sessão não encontrada." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
+
+    const db = getAdminSupabase();
+    const { data, error } = await db
+      .from("players")
+      .select("id,nickname")
+      .eq("id", playerId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+      return NextResponse.json({ error: "Sessão inválida." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
+
+    return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("session GET", error);
+    return NextResponse.json({ error: "Não foi possível verificar sua sessão." }, { status: 500, headers: { "Cache-Control": "no-store" } });
+  }
+}
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
