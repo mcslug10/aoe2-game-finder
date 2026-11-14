@@ -71,17 +71,17 @@ export async function getSteamPresenceForProfileIds(profileIds: number[]): Promi
       const payload = await companionGet(`profiles/${profileId}`, { language: "en", page: "1" });
       const profile = payload as CompanionProfileForSteam;
       const steamId = profile.steamId == null ? "" : String(profile.steamId).trim();
-      return { profileId, steamId: /^\d{16,20}$/.test(steamId) ? steamId : null };
+      return { profileId, steamId: /^\d{16,20}$/.test(steamId) ? steamId : null, lookupFailed: false };
     } catch {
-      return { profileId, steamId: null };
+      return { profileId, steamId: null, lookupFailed: true };
     }
   }));
 
-  const withSteamIds = profiles.filter((profile): profile is { profileId: number; steamId: string } => Boolean(profile.steamId));
+  const withSteamIds = profiles.filter((profile): profile is { profileId: number; steamId: string; lookupFailed: false } => Boolean(profile.steamId));
   if (!withSteamIds.length) {
     return uniqueIds.map((profileId) => ({
       profileId, steamId: null,
-      state: "no_steam_id",
+      state: profile?.lookupFailed ? "error" : "no_steam_id",
       checkedAt,
     }));
   }
@@ -119,7 +119,10 @@ export async function getSteamPresenceForProfileIds(profileIds: number[]): Promi
 
   return uniqueIds.map((profileId) => {
     const steamId = byProfileId.get(profileId) ?? null;
-    if (!steamId) return { profileId, steamId: null, state: "no_steam_id", checkedAt };
+    if (!steamId) {
+      const profile = profiles.find((item) => item.profileId === profileId);
+      return { profileId, steamId: null, state: profile?.lookupFailed ? "error" : "no_steam_id", checkedAt };
+    }
     const player = bySteamId.get(steamId);
     if (!player) return { profileId, steamId, state: "not_found", checkedAt };
     return {
