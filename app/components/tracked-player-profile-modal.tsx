@@ -86,8 +86,10 @@ type RecentMatch = {
   includesPlayer?: boolean;
 };
 
+type ProfileSteamPresence = { profileId: number; steamId: string | null; state: "online"|"offline"|"busy"|"away"|"snooze"|"looking_to_trade"|"looking_to_play"|"private"|"not_found"|"no_steam_id"|"not_configured"|"error" };
 type ProfileResponse = {
   profile: CompanionProfile;
+  steamPresence?: ProfileSteamPresence | null;
   matches: RecentMatch[];
   updatedAt?: string;
 };
@@ -101,6 +103,7 @@ type Props = {
 const copy = {
   pt: {
     loading: "Carregando perfil...",
+    steamOnline: "Online na Steam", steamOffline: "Offline na Steam", steamBusy: "Ocupado na Steam", steamAway: "Ausente na Steam", steamSnooze: "Em descanso na Steam", steamTrade: "Quer negociar", steamPlay: "Quer jogar", steamPrivate: "Perfil Steam privado", steamNoId: "Sem Steam vinculada", steamNotConfigured: "Chave da Steam não configurada", steamNotFound: "Não localizado na Steam", steamError: "Status Steam indisponível",
     retry: "Tentar novamente",
     games: "jogos",
     drops: "desconexões",
@@ -134,6 +137,7 @@ const copy = {
   },
   en: {
     loading: "Loading profile...",
+    steamOnline: "Online on Steam", steamOffline: "Offline on Steam", steamBusy: "Busy on Steam", steamAway: "Away on Steam", steamSnooze: "Snoozing on Steam", steamTrade: "Looking to trade", steamPlay: "Looking to play", steamPrivate: "Private Steam profile", steamNoId: "No linked Steam account", steamNotConfigured: "Steam API key not configured", steamNotFound: "Not found on Steam", steamError: "Steam status unavailable",
     retry: "Try again",
     games: "games",
     drops: "disconnects",
@@ -205,6 +209,7 @@ export default function TrackedPlayerProfileModal({ profileId, language, onClose
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     setSelectedProfileId(profileId);
@@ -236,7 +241,7 @@ export default function TrackedPlayerProfileModal({ profileId, language, onClose
       active = false;
       controller.abort();
     };
-  }, [selectedProfileId]);
+  }, [selectedProfileId, retryNonce]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -247,6 +252,23 @@ export default function TrackedPlayerProfileModal({ profileId, language, onClose
   }, [onClose]);
 
   const profile = data?.profile;
+  const steamState = data?.steamPresence?.state;
+  const steamStatusText =
+    steamState === "online" ? t.steamOnline :
+    steamState === "offline" ? t.steamOffline :
+    steamState === "busy" ? t.steamBusy :
+    steamState === "away" ? t.steamAway :
+    steamState === "snooze" ? t.steamSnooze :
+    steamState === "looking_to_trade" ? t.steamTrade :
+    steamState === "looking_to_play" ? t.steamPlay :
+    steamState === "private" ? t.steamPrivate :
+    steamState === "no_steam_id" ? t.steamNoId :
+    steamState === "not_configured" ? t.steamNotConfigured :
+    steamState === "not_found" ? t.steamNotFound :
+    t.steamError;
+  const steamStatusClass = steamState === "online" ? "online" :
+    ["busy","away","snooze","looking_to_trade","looking_to_play"].includes(steamState ?? "") ? "away" :
+    steamState === "offline" ? "offline" : "unknown";
   const leaderboards = profile?.leaderboards ?? [];
   const activeLeaderboards = leaderboards.filter((item) => item.active !== false);
   const inactiveLeaderboards = leaderboards.filter((item) => item.active === false);
@@ -274,6 +296,7 @@ export default function TrackedPlayerProfileModal({ profileId, language, onClose
               <span className="eyebrow muted">AOE II COMPANION</span>
               <h2>{profile?.name ?? (loading ? t.loading : `Player ${selectedProfileId}`)}</h2>
               <small>{profile?.country ?? ""} · {t.profileId}: {selectedProfileId}</small>
+              {data?.steamPresence&&<span className={`player-profile-steam-status ${steamStatusClass}`}><i/>{steamStatusText}</span>}
             </div>
           </div>
           <div className="player-profile-header-actions">
@@ -295,7 +318,7 @@ export default function TrackedPlayerProfileModal({ profileId, language, onClose
           <div className="player-profile-error" role="alert">
             <strong>{t.errorTitle}</strong>
             <p>{error}</p>
-            <button onClick={() => setSelectedProfileId(current => current)}>{t.retry}</button>
+            <button onClick={() => setRetryNonce((value) => value + 1)}>{t.retry}</button>
           </div>
         )}
 
