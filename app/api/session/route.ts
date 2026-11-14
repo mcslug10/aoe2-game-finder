@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getAdminSupabase } from "@/lib/server-supabase";
-import { guestCookieName, signPlayer, verifyPlayer } from "@/lib/session";
+import { currentPlayerId, guestCookieName, signPlayer, verifyPlayer } from "@/lib/session";
 
 export const runtime = "nodejs";
 
