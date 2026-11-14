@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSupabase } from "@/lib/server-supabase";
 import { currentPlayerId } from "@/lib/session";
-import { deleteExpiredRooms } from "@/lib/rooms";
+import { deleteExpiredRooms, ROOM_LIFETIME_MS } from "@/lib/rooms";
 
 export const runtime = "nodejs";
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         .eq("id", roomId)
         .eq("status", "open")
         .maybeSingle();
-      if (!room || Date.now() >= new Date(room.created_at).getTime() + 2 * 60 * 60 * 1000) {
+      if (!room || Date.now() >= new Date(room.created_at).getTime() + ROOM_LIFETIME_MS) {
         return NextResponse.json({ error: "Sala não encontrada, expirada ou encerrada." }, { status: 404 });
       }
     }
