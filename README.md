@@ -17,6 +17,15 @@ Community matchmaking hub and replay-coaching companion for Age of Empires II: D
 - The World's Edge / Relic Link API is not the primary source for profile discovery in this MVP.
 - The Companion API is a third-party community service and may change or rate-limit requests; the app handles errors and retries are left to the user.
 
+## Tracked player profiles and Steam presence
+
+- Tracked players are configured in `lib/tracked-players.ts` with their AoE II Companion profile IDs.
+- Clicking a tracked nickname opens the detailed profile panel with ladder ratings, current/peak rating, rank, win rate, favorite civilization/map, recent form and recent match teams.
+- Steam presence uses the official Steam Web API `ISteamUser/GetPlayerSummaries`. It resolves the SteamID64 from the public AoE II Companion profile and queries Steam server-side; the Steam key is never sent to the browser.
+- To enable Steam status, create a Steam Web API key at https://steamcommunity.com/dev/apikey and add `STEAM_WEB_API_KEY` to the Vercel project's Production and Preview environment variables. Redeploy after saving it.
+- Without this key, the panel explains that Steam presence is not configured. Private Steam profiles are shown as private/unavailable rather than being incorrectly reported as offline.
+- Steam presence and public AoE2 lobby presence are separate signals. A player can be online on Steam without appearing in a public lobby.
+
 ## Optional Python parser for manual uploads
 
 The Next.js app runs on Vercel. Manual replay file parsing uses a separate Python service because parsing `.aoe2record` files is CPU- and memory-intensive and should not run inside a short-lived Next.js request.

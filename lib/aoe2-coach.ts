@@ -126,6 +126,8 @@ export async function getCompanionRecentMatches(profileId: number) {
         country: player.country ?? null,
         civilizationId: null,
         civilizationName: player.civName ?? player.civ ?? null,
+        rating: typeof player.rating === "number" ? player.rating : null,
+        ratingDiff: typeof player.ratingDiff === "number" ? player.ratingDiff : null,
         teamId: team.teamId ?? null,
         won: player.won === true,
       })));
