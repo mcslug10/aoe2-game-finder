@@ -193,6 +193,7 @@ export function evaluateAoE2Match(
   const castleRams = countNames(castleUnits, ["battering ram", "capped ram", "siege ram"]);
   const feudalArmy = feudalArchers + feudalMaa + feudalScouts;
   const fastCastle = feudal !== null && castle !== null && castle - feudal < 9 * 60 && feudalArmy < 4;
+  const darkBuildings = buildingsByAge("dark");
   const darkFishingShips = countNames(darkUnits, ["fishing ship"]);
   const allFishingShips = countNames(ownUnits, ["fishing ship"]);
   const feudalFireGalleys = countNames(feudalUnits, ["fire galley"]);
