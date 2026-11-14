@@ -1270,3 +1270,83 @@ body:has(.browser-page:not(.coach-page)):before {
   .browser-page:not(.coach-page) .browser-updated,
   .browser-page:not(.coach-page) .browser-notice { font-size: 11px; }
 }
+
+
+/* Game Finder room lifecycle: expiry timer and creator controls */
+.game-ui .room-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 7px;
+  min-width: 158px;
+  margin-left: auto;
+  flex: none;
+}
+.game-ui .room-expiry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: #875b31;
+  font: 700 10px 'DM Sans', sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.game-ui .room-expiry svg { color: #8c241d; }
+.game-ui .room-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.game-ui .room-action-buttons .join-btn { min-height: 36px; }
+.game-ui .close-room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 8px 10px;
+  color: #fff0c9;
+  background: linear-gradient(180deg, #8d3a27, #551b16);
+  border: 1px solid #a77c4a;
+  box-shadow: inset 0 1px rgba(255,239,190,.2), 0 2px 4px rgba(67,28,17,.2);
+  font: 700 10px 'Cinzel', Georgia, serif;
+  letter-spacing: .1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.game-ui .close-room-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #a94930, #6c2118);
+  border-color: #e0b56d;
+}
+.game-ui .close-room-btn:disabled { opacity: .58; cursor: wait; }
+.game-ui .room-feedback {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0;
+  padding: 10px 12px;
+  color: #5b4d27;
+  background: rgba(231,226,187,.72);
+  border: 1px solid #99915d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .game-ui .room-actions {
+    width: calc(100% - 43px);
+    min-width: 0;
+    margin-left: 43px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .game-ui .room-expiry { justify-content: flex-start; font-size: 10px; }
+  .game-ui .room-action-buttons { margin-left: auto; }
+  .game-ui .close-room-btn,
+  .game-ui .room-action-buttons .join-btn { min-height: 36px; }
+}
