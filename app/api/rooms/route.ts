@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSupabase } from "@/lib/server-supabase";
 import { currentPlayerId } from "@/lib/session";
+import { deleteExpiredRooms, roomExpiresAt } from "@/lib/rooms";
 
 export const runtime = "nodejs";
 
@@ -12,8 +13,9 @@ type RoomRow = {
   min_elo: number | null;
   max_elo: number | null;
   region: string | null;
+  host_id: string;
+  created_at: string;
   game_lobby_id?: string | null;
-  players?: Array<{ nickname?: string }> | null;
 };
 
 function isMissingLobbyColumn(error: { message?: string; code?: string } | null) {
@@ -22,10 +24,17 @@ function isMissingLobbyColumn(error: { message?: string; code?: string } | null)
     (error.message ?? "").toLowerCase().includes("game_lobby_id");
 }
 
+function playerCapacity(mode: string) {
+  return mode === "1v1" ? 2 : mode === "2v2" ? 4 : mode === "3v3" ? 6 : 8;
+}
+
 export async function GET() {
   try {
     const db = getAdminSupabase();
-    const baseColumns = "id,title,game_mode,map_name,min_elo,max_elo,region,players(nickname)";
+    await deleteExpiredRooms(db);
+
+    const viewerId = await currentPlayerId();
+    const baseColumns = "id,title,game_mode,map_name,min_elo,max_elo,region,host_id,created_at";
     const withLobbyColumn = await db
       .from("rooms")
       .select(`${baseColumns},game_lobby_id`)
@@ -53,6 +62,17 @@ export async function GET() {
       throw withLobbyColumn.error;
     }
 
+    const hostIds = [...new Set(rows.map((room) => room.host_id).filter(Boolean))];
+    const hostNames = new Map<string, string>();
+    if (hostIds.length) {
+      const { data: players, error: playersError } = await db
+        .from("players")
+        .select("id,nickname")
+        .in("id", hostIds);
+      if (playersError) throw playersError;
+      for (const player of players ?? []) hostNames.set(player.id, player.nickname);
+    }
+
     return NextResponse.json({
       rooms: rows.map((room) => ({
         id: room.id,
@@ -61,12 +81,16 @@ export async function GET() {
         map: room.map_name,
         elo: room.min_elo == null && room.max_elo == null ? "Any ELO" : `${room.min_elo ?? "?"}–${room.max_elo ?? "?"}`,
         region: room.region ?? "Any region",
-        name: room.players?.[0]?.nickname ?? "Jogador",
-        host: room.players?.[0]?.nickname ?? "Jogador",
-        players: "1/8",
+        name: hostNames.get(room.host_id) ?? "Jogador",
+        host: hostNames.get(room.host_id) ?? "Jogador",
+        players: `1/${playerCapacity(room.game_mode)}`,
         game_lobby_id: lobbyColumnAvailable ? room.game_lobby_id ?? null : null,
+        createdAt: room.created_at,
+        expiresAt: roomExpiresAt(room.created_at),
+        isHost: Boolean(viewerId && viewerId === room.host_id),
       })),
       lobbyLinkingAvailable: lobbyColumnAvailable,
+      roomLifetimeMinutes: 120,
     });
   } catch (error) {
     console.error("rooms GET", error);
@@ -106,6 +130,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getAdminSupabase();
+    await deleteExpiredRooms(db);
     const payload = {
       host_id: playerId,
       title,
@@ -120,7 +145,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await db
       .from("rooms")
       .insert(payload)
-      .select("id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at")
+      .select("id,title,game_mode,map_name,min_elo,max_elo,region,status,created_at,host_id")
       .single();
 
     if (error) {
@@ -130,6 +155,13 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
+    const { data: hostPlayer, error: hostError } = await db
+      .from("players")
+      .select("nickname")
+      .eq("id", playerId)
+      .maybeSingle();
+    if (hostError) throw hostError;
+
     return NextResponse.json({
       room: {
         id: data.id,
@@ -138,9 +170,12 @@ export async function POST(req: NextRequest) {
         map: data.map_name,
         elo,
         region: data.region ?? "Any region",
-        host: "Você",
+        host: hostPlayer?.nickname ?? "Jogador",
         players: mode === "1v1" ? "1/2" : mode === "2v2" ? "1/4" : mode === "3v3" ? "1/6" : "1/8",
         game_lobby_id: lobbyIdInput || null,
+        createdAt: data.created_at,
+        expiresAt: roomExpiresAt(data.created_at),
+        isHost: true,
       },
     });
   } catch (error) {
