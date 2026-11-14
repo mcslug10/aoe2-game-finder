@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { companionGet, getCompanionRecentMatches } from "@/lib/aoe2-coach";
+import { getSteamPresenceForProfileIds } from "@/lib/steam-presence";
 
 export const runtime = "nodejs";
 
@@ -15,13 +16,14 @@ export async function GET(
   }
 
   try {
-    const [profile, recent] = await Promise.all([
+    const [profile, recent, steamPresence] = await Promise.all([
       companionGet(`profiles/${profileId}`, {
         language: "pt",
         extend: "avatar_medium_url,avatar_full_url,last_10_matches_won,stats_civ_map",
         page: "1",
       }),
       getCompanionRecentMatches(profileId),
+      getSteamPresenceForProfileIds([profileId]),
     ]);
 
     if (Number(profile.profileId) !== profileId) {
@@ -32,6 +34,7 @@ export async function GET(
       {
         profile,
         matches: recent.matches,
+        steamPresence: steamPresence[0] ?? null,
         source: "AoE II Companion",
         updatedAt: new Date().toISOString(),
       },
