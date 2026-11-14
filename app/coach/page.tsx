@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import RatingHistoryChart from "./rating-chart";
 import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
+import { AOE2_BUILD_GUIDES, BUILD_GUIDE_CATEGORIES } from "@/lib/aoe2-build-guides";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
   CheckCircle2, Clock3, FileVideo, Gauge, Medal, Search, Swords, Target, ShieldCheck,
@@ -35,10 +36,32 @@ type Report = {
     coverage: number;
     strategy: {
       name: string;
+      guideId: string | null;
       confidence: "high" | "medium" | "low";
       reason: string;
       evidence: string[];
       alternatives: string[];
+    };
+    buildGuideComparison: null | {
+      guideId: string;
+      titlePt: string;
+      titleOriginal: string;
+      description: string;
+      sourceUrl: string;
+      score: number | null;
+      verifiableSteps: number;
+      observedSteps: number;
+      note: string;
+      steps: Array<{
+        id: string;
+        phase: string;
+        title: string;
+        description: string;
+        villagerMarker?: string;
+        status: "observed" | "not_detected" | "not_verifiable";
+        evidence: string | null;
+        time: string | null;
+      }>;
     };
     categories: Array<{
       id: string;
@@ -95,6 +118,7 @@ export default function CoachPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [buildGuideSearch, setBuildGuideSearch] = useState("");
 
   async function searchPlayer() {
     const clean = nickname.trim();
@@ -194,6 +218,47 @@ export default function CoachPage() {
       <div className="coach-hero-points"><span><Activity size={15}/> eAPM e ações</span><span><Clock3 size={15}/> Tempos de evolução</span><span><BookOpen size={15}/> Build order observada</span></div>
     </section>
 
+    <section className="panel coach-build-catalog">
+      <div className="coach-section-heading">
+        <div className="coach-icon"><BookOpen size={20}/></div>
+        <div><h2>Estratégias de referência</h2><p>Os 12 guias essenciais do AoE II Companion, com títulos e explicações em português e nomes das unidades mantidos em inglês.</p></div>
+        <span className="coach-count">{AOE2_BUILD_GUIDES.length}</span>
+      </div>
+      <label className="coach-build-search">
+        <Search size={15}/>
+        <input value={buildGuideSearch} onChange={(event)=>setBuildGuideSearch(event.target.value)} placeholder="Buscar estratégia, unidade ou modalidade..."/>
+      </label>
+      {BUILD_GUIDE_CATEGORIES.map((category)=>{
+        const guides=AOE2_BUILD_GUIDES.filter((guide)=>guide.category===category&&`${guide.titlePt} ${guide.titleOriginal} ${guide.description} ${guide.steps.map((step)=>step.title+" "+step.description).join(" ")}`.toLowerCase().includes(buildGuideSearch.toLowerCase()));
+        if(!guides.length)return null;
+        const categoryName=guides[0].categoryPt;
+        return <div className="coach-build-category" key={category}>
+          <div className="coach-build-category-heading"><h3>{categoryName}</h3><span>{guides.length} {guides.length===1?"estratégia":"estratégias"}</span></div>
+          <div className="coach-build-grid">
+            {guides.map((guide)=>(
+              <article className="coach-build-card" key={guide.id}>
+                <div className="coach-build-card-title"><div><span className="coach-build-original">{guide.titleOriginal}</span><h4>{guide.titlePt}</h4></div><span className={"coach-build-difficulty "+guide.difficulty.toLowerCase()}>{guide.difficultyPt}</span></div>
+                <p>{guide.description}</p>
+                <details className="coach-build-steps">
+                  <summary>Ver sequência recomendada ({guide.steps.length} marcos)</summary>
+                  <ol>{guide.steps.map((step)=>(
+                    <li key={step.id}>
+                      <div><b>{step.phase}{step.villagerMarker?" · "+step.villagerMarker+" Villagers":""}: {step.title}</b></div>
+                      <p>{step.description}</p>
+                      {!step.check&&<small>Execução econômica detalhada não é verificável diretamente pelo parser de replay.</small>}
+                    </li>
+                  ))}</ol>
+                </details>
+                <a className="coach-build-source" href={guide.sourceUrl} target="_blank" rel="noreferrer">Abrir guia original do AoE II Companion ↗</a>
+              </article>
+            ))}
+          </div>
+        </div>;
+      })}
+      {AOE2_BUILD_GUIDES.every((guide)=>!`${guide.titlePt} ${guide.titleOriginal} ${guide.description} ${guide.steps.map((step)=>step.title+" "+step.description).join(" ")}`.toLowerCase().includes(buildGuideSearch.toLowerCase()))&&<p className="coach-empty">Nenhuma estratégia corresponde à busca.</p>}
+      <p className="coach-footnote">Fonte das categorias e guias: <a href="https://aoecompanion.com/build-guides" target="_blank" rel="noreferrer">AoE II Companion — Build Guides</a>. Os marcos são resumidos para consulta e comparação; as builds podem variar conforme civilização, mapa, patch e adaptação à partida.</p>
+    </section>
+
     <section className="panel coach-lookup">
       <div className="coach-section-heading"><div className="coach-icon"><Search size={20}/></div><div><h2>1. Localizar jogador</h2><p>Digite o nickname exatamente como aparece no jogo. A busca diferencia maiúsculas e minúsculas.</p></div></div>
       <form className="coach-search-form" onSubmit={(event)=>{event.preventDefault();void searchPlayer();}}>
@@ -278,6 +343,32 @@ export default function CoachPage() {
         </div>
       </div>
 
+      {report.evaluation.buildGuideComparison&&<div className="coach-report-block coach-build-comparison">
+        <div className="coach-build-comparison-heading">
+          <div><div className="eyebrow muted">BUILD ORDER DE REFERÊNCIA</div><h3>{report.evaluation.buildGuideComparison.titlePt}</h3><p>{report.evaluation.buildGuideComparison.titleOriginal} · Guia do AoE II Companion</p></div>
+          <div className="coach-build-adherence"><strong>{report.evaluation.buildGuideComparison.score===null?"—":report.evaluation.buildGuideComparison.score+"%"}</strong><small>{report.evaluation.buildGuideComparison.observedSteps}/{report.evaluation.buildGuideComparison.verifiableSteps} marcos verificáveis</small></div>
+        </div>
+        <p className="coach-build-summary">{report.evaluation.buildGuideComparison.description}</p>
+        <div className="coach-build-checklist">
+          {report.evaluation.buildGuideComparison.steps.map((step)=>(
+            <article className={"coach-build-check "+step.status} key={step.id}>
+              <div className="coach-build-check-marker">{step.status==="observed"?<CheckCircle2 size={16}/>:step.status==="not_detected"?<AlertTriangle size={16}/>:<Clock3 size={16}/>}</div>
+              <div className="coach-build-check-content">
+                <div className="coach-build-check-head"><span>{step.phase}{step.villagerMarker?" · "+step.villagerMarker+" Villagers":""}</span><b>{step.status==="observed"?"Detectado":step.status==="not_detected"?"Não localizado":"Não verificável pelo replay"}</b></div>
+                <strong>{step.title}</strong>
+                <p>{step.description}</p>
+                {step.evidence&&<small>{step.evidence}{step.time?" · "+step.time:""}</small>}
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="coach-build-limit">{report.evaluation.buildGuideComparison.note}</p>
+        <a className="coach-build-source" href={report.evaluation.buildGuideComparison.sourceUrl} target="_blank" rel="noreferrer">Consultar o guia completo no AoE II Companion ↗</a>
+      </div>}
+      {!report.evaluation.buildGuideComparison&&<div className="coach-report-block coach-build-comparison coach-build-no-guide">
+        <h3>Comparação com uma build order</h3>
+        <p>O replay não apresentou sinais suficientes para associar esta partida a um dos 12 guias essenciais do AoE II Companion. Veja o catálogo de estratégias acima. Não vamos escolher uma build aleatória nem apontar desvios sem evidência.</p>
+      </div>}
       <div className="coach-report-block coach-score-breakdown">
         <h3><Target size={17}/> Como você pontuou</h3>
         <div className="coach-category-list">

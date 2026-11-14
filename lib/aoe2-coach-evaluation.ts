@@ -1,3 +1,5 @@
+import { getBuildGuide } from "@/lib/aoe2-build-guides";
+
 type QueueItem = { timestamp: string; unit: string; amount?: number };
 type AgeItem = { timestamp: string; age: string };
 type PlayerAnalysis = {
@@ -45,10 +47,32 @@ export type MatchEvaluation = {
   coverage: number;
   strategy: {
     name: string;
+    guideId: string | null;
     confidence: "high" | "medium" | "low";
     reason: string;
     evidence: string[];
     alternatives: string[];
+  };
+  buildGuideComparison: null | {
+    guideId: string;
+    titlePt: string;
+    titleOriginal: string;
+    description: string;
+    sourceUrl: string;
+    score: number | null;
+    verifiableSteps: number;
+    observedSteps: number;
+    note: string;
+    steps: Array<{
+      id: string;
+      phase: string;
+      title: string;
+      description: string;
+      villagerMarker?: string;
+      status: "observed" | "not_detected" | "not_verifiable";
+      evidence: string | null;
+      time: string | null;
+    }>;
   };
   categories: EvaluationCategory[];
   reaction: {
@@ -169,14 +193,34 @@ export function evaluateAoE2Match(
   const castleRams = countNames(castleUnits, ["battering ram", "capped ram", "siege ram"]);
   const feudalArmy = feudalArchers + feudalMaa + feudalScouts;
   const fastCastle = feudal !== null && castle !== null && castle - feudal < 9 * 60 && feudalArmy < 4;
+  const ownTechNames = ownTechs.map((item) => norm(item.unit));
+  const hasTech = (...names: string[]) => ownTechNames.some((tech) => names.some((name) => tech.includes(name)));
+  const allFishingShips = countNames(ownUnits, ["fishing ship"]);
+  const feudalFireGalleys = countNames(feudalUnits, ["fire galley"]);
+  const totalFireGalleys = countNames(ownUnits, ["fire galley"]);
+  const allDocks = ownBuildings.filter((item) => includesAny(item.unit, ["dock"])).length;
+  const castleKnights = countNames(castleUnits, ["knight", "cavalier"]);
+  const castleBuildingsCount = castleBuildings.filter((item) => includesAny(item.unit, ["castle"])).length;
+  const castleUniqueUnitNames = castleUnits.filter((item) =>
+    !includesAny(item.unit, [
+      "villager", "knight", "cavalier", "paladin", "camel", "battle elephant", "elephant archer",
+      "crossbow", "arbalester", "monk", "mangonel", "onager", "siege onager", "scorpion",
+      "battering ram", "capped ram", "siege ram", "spearman", "pikeman", "halberdier",
+      "skirmisher", "elite skirmisher", "light cavalry", "hussar", "eagle warrior",
+      "long swordsman", "two handed swordsman", "champion", "demolition ship", "fire ship",
+      "fire galley", "galley", "war galley", "trade cart", "fishing ship",
+    ]),
+  );
+  const fastImperial = imperial !== null && imperial <= 26 * 60;
   const civ = norm(selected.civilization ?? "");
   const evidence: string[] = [];
   let strategy = "Estratégia não identificada";
+  let strategyGuideId: string | null = null;
   let strategyStrength = 0;
   let strategyReason = "Os eventos não formaram um padrão suficientemente claro para classificar a abertura.";
   let strategyScore: number | null = null;
 
-  // Opening rules are adapted from the public MIT-licensed aoe2-openings project.
+  // Opening rules are based on concrete replay events. The official AoE II Companion build catalogue is used when a guide match is sufficiently supported.
   if (civ.includes("sicilian") && (hasDonjon || feudalSerjeants >= 2)) {
     strategy = "Serjeant Rush"; strategyStrength = 3; evidence.push("Sicilianos com Donjon ou 2+ Serjeants na Era Feudal.");
   } else if (["khmer", "burmese", "malay", "vietnamese"].some((name) => civ.includes(name)) && castleElephants >= 4) {
@@ -185,38 +229,50 @@ export function evaluateAoE2Match(
     strategy = "2TC Feudal Boom"; strategyStrength = 3; evidence.push("Segundo Centro da Cidade construído ainda na Era Feudal.");
   } else if (civ.includes("roman") && castleScorpions >= 2 && castleRams >= 1) {
     strategy = "Scorpions & Rams"; strategyStrength = 3; evidence.push("2+ Scorpions e um aríete na Era dos Castelos.");
+  } else if (feudalTowers >= 1 && (darkMilitia >= 3 || feudalMaa >= 2) && hasTech("man at arms")) {
+    strategy = "Men-at-Arms + Tower Rush"; strategyGuideId = "maa-tower-rush"; strategyStrength = 3; evidence.push(`${feudalTowers} Tower(s) na Feudal, pressão da linha Militia e upgrade Men-at-Arms identificado.`);
+  } else if (allDocks > 0 && allFishingShips >= 4 && feudalFireGalleys >= 1 && feudalArchers >= 2) {
+    strategy = "Fire Galleys and Archers"; strategyGuideId = "fire-galleys-archers"; strategyStrength = 3; evidence.push(`${allFishingShips} Fishing Ships, Fire Galley(s) e Archers identificados.`);
+  } else if (allDocks > 0 && allFishingShips >= 4 && totalFireGalleys >= 1) {
+    strategy = "Win Water"; strategyGuideId = "win-water"; strategyStrength = 3; evidence.push(`${allFishingShips} Fishing Ships, Dock(s) e Fire Galleys identificados.`);
+  } else if (fastImperial && hasName(castleBuildings, ["monastery"]) && hasName(castleBuildings, ["siege workshop"])) {
+    strategy = "Fast Imperial Age"; strategyGuideId = "fast-imperial"; strategyStrength = 3; evidence.push("Imperial Age alcançada até 26:00, com Monastery e Siege Workshop na Castle Age.");
   } else if (hasSiegeWorkshop) {
     strategy = "Hoang Rush / pressão de cerco"; strategyStrength = 2; evidence.push("Oficina de Cerco construída na Era Feudal.");
   } else if (feudalTowers >= 3) {
     strategy = "Tower Rush"; strategyStrength = 3; evidence.push(`${feudalTowers} torres construídas na Era Feudal.`);
   } else if (darkMilitia >= 3 && fastCastle) {
-    strategy = "Drush Fast Castle"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia na Era Sombria e avanço rápido aos Castelos.`);
+    strategy = "Drush Fast Castle"; strategyGuideId = "drush-fast-castle"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia na Era Sombria e avanço rápido aos Castelos.`);
   } else if (darkMilitia >= 3 && feudalArchers >= 3) {
-    strategy = "Drush Archers"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia na Era Sombria, seguidos de ${feudalArchers} arqueiros na Feudal.`);
+    strategy = "Drush Archers"; strategyGuideId = "drush-archers"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia na Era Sombria, seguidos de ${feudalArchers} Archers na Feudal.`);
   } else if (darkMilitia >= 3 && feudalMaa >= 2) {
     strategy = "Drush Men-at-Arms"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia na Era Sombria e ${feudalMaa} unidades da linha Militia na Feudal.`);
   } else if (darkMilitia >= 3) {
     strategy = "Drush"; strategyStrength = 3; evidence.push(`${darkMilitia} Militia enfileirados antes da Era Feudal.`);
-  } else if (feudalMaa >= 2 && feudalArchers >= 3) {
-    strategy = "Men-at-Arms → Archers"; strategyStrength = 3; evidence.push(`${feudalMaa} unidades da linha Militia e ${feudalArchers} arqueiros na Feudal.`);
-  } else if (feudalMaa >= 4) {
-    strategy = "Men-at-Arms Rush"; strategyStrength = 3; evidence.push(`${feudalMaa} unidades da linha Militia enfileiradas na Feudal.`);
-  } else if (feudalArchers >= 4) {
-    strategy = "Archer Rush"; strategyStrength = 3; evidence.push(`${feudalArchers} arqueiros/Crossbowmen enfileirados na Feudal.`);
+  } else if ((feudalMaa >= 2 || hasTech("man at arms")) && feudalArchers >= 2) {
+    strategy = "Men-at-Arms → Archers"; strategyGuideId = "maa-archers"; strategyStrength = 3; evidence.push(`Upgrade Men-at-Arms e ${feudalArchers} Archers identificados na Feudal.`);
+  } else if (feudalMaa >= 4 || hasTech("man at arms")) {
+    strategy = "Men-at-Arms Rush"; strategyStrength = 3; evidence.push(`${feudalMaa} unidades da linha Militia/upgrade Men-at-Arms identificados na Feudal.`);
+  } else if (feudalArchers >= 4 && hasRange) {
+    strategy = "Archer Rush"; strategyGuideId = "archer-rush"; strategyStrength = 3; evidence.push(`${feudalArchers} Archers/Crossbowmen e Archery Range(s) na Feudal.`);
   } else if (feudalScouts >= 3 && hasStable) {
-    strategy = "Scout Rush"; strategyStrength = 3; evidence.push(`${feudalScouts} Scouts/Light Cavalry e Stable na Feudal.`);
+    strategy = "Scout Rush"; strategyGuideId = "scout-rush"; strategyStrength = 3; evidence.push(`${feudalScouts} Scouts/Light Cavalry e Stable na Feudal.`);
   } else if (feudalMaa >= 2 && feudalScouts >= 2) {
     strategy = "Men-at-Arms + Scouts"; strategyStrength = 3; evidence.push("Men-at-Arms e Scouts combinados na Era Feudal.");
   } else if (feudalSkirms >= 2 && feudalSpears >= 2) {
     strategy = "Pike + Skirm"; strategyStrength = 3; evidence.push("Composição defensiva de Spearmen e Skirmishers na Feudal.");
+  } else if (fastCastle && castleKnights >= 2) {
+    strategy = "Fast Castle → Knights"; strategyGuideId = "fast-castle-knights"; strategyStrength = 3; evidence.push(`Castle Age em menos de 9 minutos e ${castleKnights} Knights/Cavaliers identificados.`);
+  } else if (fastCastle && castleBuildingsCount >= 1 && castleUniqueUnitNames.length >= 1) {
+    strategy = "Fast Castle → Unique Unit"; strategyGuideId = "fast-castle-unique-unit"; strategyStrength = 2; evidence.push("Fast Castle, Castle e unidade de nome não convencional identificados; confirme a unidade única da civilização.");
   } else if (fastCastle && hasCastleTC) {
-    strategy = "Fast Castle → Boom"; strategyStrength = 3; evidence.push("Transição Feudal–Castelos em menos de 9 minutos e novo Centro da Cidade nos Castelos.");
+    strategy = "Fast Castle → Boom"; strategyGuideId = "fast-castle-boom"; strategyStrength = 3; evidence.push("Transição Feudal–Castelos em menos de 9 minutos e Town Center adicional na Castle Age.");
   } else if (fastCastle) {
     strategy = "Fast Castle"; strategyStrength = 3; evidence.push("Transição Feudal–Castelos em menos de 9 minutos com exército Feudal reduzido.");
   } else if (hasMonastery && feudalArchers < 2 && feudalMaa < 2 && feudalScouts < 2) {
     strategy = "Monk / Relic Opening"; strategyStrength = 2; evidence.push("Monastery cedo e pouca produção militar Feudal.");
   } else if (feudalArchers >= 2 && hasRange) {
-    strategy = "Archer Opening"; strategyStrength = 2; evidence.push("Archery Range e pelo menos 2 arqueiros na Feudal.");
+    strategy = "Archer Opening"; strategyStrength = 2; evidence.push("Archery Range e pelo menos 2 Archers na Feudal.");
   } else if (feudalScouts >= 2 && hasStable) {
     strategy = "Scout Opening"; strategyStrength = 2; evidence.push("Stable e pelo menos 2 Scouts na Feudal.");
   } else if (feudalMaa >= 2) {
@@ -248,8 +304,6 @@ export function evaluateAoE2Match(
   if (strategy === "Fast Castle" && hasCastleTC) alternatives.push("Pode ser Fast Castle → Boom.");
   if (strategy === "Men-at-Arms Rush" && hasRange) alternatives.push("Pode ser Men-at-Arms → Archers, caso arqueiros tenham sido enfileirados depois.");
 
-  const ownTechNames = ownTechs.map((item) => norm(item.unit));
-  const hasTech = (...names: string[]) => ownTechNames.some((tech) => names.some((name) => tech.includes(name)));
   const militaryCount = ownUnits.filter((item) => !includesAny(item.unit, ["villager", "trade cart", "fishing ship", "transport ship", "cow", "sheep"])).length;
   const productionBuildings = ownBuildings.filter((item) => includesAny(item.unit, ["barracks", "archery range", "stable", "siege workshop", "castle"])).length;
   let militaryScore: number | null = null;
@@ -454,16 +508,127 @@ export function evaluateAoE2Match(
     });
   }
 
+  const guide = getBuildGuide(strategyGuideId);
+  const buildGuideComparison = guide ? (() => {
+    const comparisonSteps = guide.steps.map((step) => {
+      const check = step.check;
+      if (!check) {
+        return { ...step, status: "not_verifiable" as const, evidence: null, time: null };
+      }
+      let status: "observed" | "not_detected" | "not_verifiable" = "not_verifiable";
+      let detail: string | null = null;
+      let at: number | null = null;
+
+      if (check.kind === "age") {
+        const ageAt = check.age === "feudal" ? feudal : check.age === "castle" ? castle : imperial;
+        if (ageAt !== null) {
+          at = ageAt;
+          status = check.maxSeconds === undefined || ageAt <= check.maxSeconds ? "observed" : "not_detected";
+          detail = check.maxSeconds !== undefined && ageAt > check.maxSeconds
+            ? `Avanço identificado em ${clock(ageAt)}, depois da referência de ${clock(check.maxSeconds)}.`
+            : `Avanço identificado em ${clock(ageAt)}.`;
+        }
+      } else if (check.kind === "fast-castle") {
+        if (feudal !== null && castle !== null) {
+          at = castle;
+          const gap = castle - feudal;
+          status = gap < 9 * 60 ? "observed" : "not_detected";
+          detail = `Intervalo Feudal–Castelos: ${clock(gap)}.`;
+        }
+      } else if (check.kind === "unit") {
+        const events = check.age === "dark" ? darkUnits : check.age === "feudal" ? feudalUnits : check.age === "castle" ? castleUnits : unitsByAge("imperial");
+        const ageAvailable = check.age === "dark" ? feudal !== null : check.age === "feudal" ? feudal !== null : check.age === "castle" ? castle !== null : imperial !== null;
+        if (selected.queuedUnits && ageAvailable) {
+          const matching = events.filter((item) => check.terms.some((term) => norm(item.unit).includes(norm(term))));
+          const count = matching.reduce((sum, item) => sum + quantity(item), 0);
+          status = count >= check.minimum ? "observed" : "not_detected";
+          const first = matching[0];
+          at = first?.at ?? null;
+          detail = `${count} unidade(s) correspondente(s) identificada(s); referência: ${check.minimum}.`;
+        }
+      } else if (check.kind === "building") {
+        const events = check.age === "dark" ? ownBuildings.filter((item) => eventAge(item.at, feudal, castle, imperial) === "dark")
+          : check.age === "feudal" ? feudalBuildings
+          : check.age === "castle" ? castleBuildings : buildingsByAge("imperial");
+        const ageAvailable = check.age === "dark" ? feudal !== null : check.age === "feudal" ? feudal !== null : check.age === "castle" ? castle !== null : imperial !== null;
+        if (selected.queuedBuildings && ageAvailable) {
+          const matching = check.terms.length > 1
+            ? check.terms.filter((term) => events.some((item) => norm(item.unit).includes(norm(term))))
+            : events.filter((item) => check.terms.some((term) => norm(item.unit).includes(norm(term))));
+          const count = check.terms.length > 1 ? matching.length : matching.length;
+          status = count >= check.minimum ? "observed" : "not_detected";
+          const first = events.find((item) => check.terms.some((term) => norm(item.unit).includes(norm(term))));
+          at = first?.at ?? null;
+          detail = `${count} construção(ões)/tipo(s) correspondente(s) identificada(s); referência: ${check.minimum}.`;
+        }
+      } else if (check.kind === "technology") {
+        if (selected.queuedTechs) {
+          const matching = ownTechs.filter((item) => check.terms.some((term) => norm(item.unit).includes(norm(term))));
+          status = matching.length ? "observed" : "not_detected";
+          at = matching[0]?.at ?? null;
+          detail = matching.length ? `Tecnologia identificada: ${matching[0].unit}.` : "A tecnologia não apareceu na lista de pesquisas retornada pelo replay.";
+        }
+      } else if (check.kind === "unique-castle-unit") {
+        if (selected.queuedUnits && castle !== null) {
+          status = castleUniqueUnitNames.length > 0 ? "observed" : "not_detected";
+          at = castleUnits.find((item) => castleUniqueUnitNames.includes(item))?.at ?? null;
+          detail = castleUniqueUnitNames.length
+            ? `Unidade(s) de nome não convencional: ${castleUniqueUnitNames.map((item) => item.unit).join(", ")}. Confirme se é a Unique Unit da civilização.`
+            : "Nenhuma unidade de nome não convencional foi localizada na Castle Age.";
+        }
+      } else if (check.kind === "walls") {
+        if (selected.queuedWalls) {
+          const wallEvents = selected.queuedWalls.map((item) => ({ at: seconds(item.timestamp) })).filter((item): item is { at: number } => item.at !== null);
+          status = wallEvents.length > 0 ? "observed" : "not_detected";
+          at = wallEvents[0]?.at ?? null;
+          detail = wallEvents.length ? `${wallEvents.length} comando(s) de muralha identificado(s).` : "Nenhum comando de muralha foi retornado pelo replay.";
+        }
+      }
+
+      return {
+        ...step,
+        status,
+        evidence: detail,
+        time: at === null ? null : clock(at),
+      };
+    });
+    const verifiable = comparisonSteps.filter((step) => step.status !== "not_verifiable");
+    const observed = comparisonSteps.filter((step) => step.status === "observed").length;
+    return {
+      guideId: guide.id,
+      titlePt: guide.titlePt,
+      titleOriginal: guide.titleOriginal,
+      description: guide.description,
+      sourceUrl: guide.sourceUrl,
+      score: verifiable.length >= 2 ? Math.round((observed / verifiable.length) * 100) : null,
+      verifiableSteps: verifiable.length,
+      observedSteps: observed,
+      note: "A comparação usa eventos de unidades, construções, tecnologias e avanços de idade que o AoE II Companion retornou. Distribuição exata de Villagers em Food/Wood/Gold/Stone, posição das construções, intenção tática e alguns comandos de economia não podem ser confirmados por este parser. ‘Não detectado’ significa que o evento não apareceu nos dados disponíveis, não uma prova absoluta de que o jogador não o fez.",
+      steps: comparisonSteps.map((step) => ({
+        id: step.id,
+        phase: step.phase,
+        title: step.title,
+        description: step.description,
+        villagerMarker: step.villagerMarker,
+        status: step.status,
+        evidence: step.evidence,
+        time: step.time,
+      })),
+    };
+  })() : null;
+
   const uniqueAlternatives = [...new Set(alternatives)];
   return {
     overallScore, overallLabel, confidence, coverage,
     strategy: {
       name: strategy,
+      guideId: strategyGuideId,
       confidence: confidenceFromStrength(strategyStrength),
       reason: strategyReason,
       evidence,
       alternatives: uniqueAlternatives,
     },
+    buildGuideComparison,
     categories,
     reaction: {
       opponentUnit: threat?.unit ?? null,

@@ -26,6 +26,18 @@ Community matchmaking hub and replay-coaching companion for Age of Empires II: D
 - Without this key, the panel explains that Steam presence is not configured. Private Steam profiles are shown as private/unavailable rather than being incorrectly reported as offline.
 - Steam presence and public AoE2 lobby presence are separate signals. A player can be online on Steam without appearing in a public lobby.
 
+
+## AOE2 Coach build-guide recognition
+
+- The Coach catalogue includes the 12 essential AoE II Companion build guides shown in its Build Guides section: Scout Rush, Archer Rush, Men-at-Arms Rush → Archers, Men-at-Arms + Tower Rush, Fast Castle → Boom, Fast Castle → Knights, Fast Castle → Unique Unit, Fast Imperial Age, Drush → Archers, Drush → Fast Castle, Fire Galleys and Archers, and Win Water.
+- Titles and guidance are translated into Brazilian Portuguese while unit names such as Villagers, Militia, Scouts, Archers, Knights and Fire Galleys remain in English.
+- During replay analysis the Coach classifies the most likely opening from detected age transitions, unit queues, buildings and technologies, then compares the replay with the matching guide's observable milestones.
+- Each comparison step is marked as detected, not found in the returned replay events, or not verifiable from replay data. The adherence percentage uses only verifiable steps.
+- Villager-by-villager resource assignments, exact resource stockpiles, building placement, tactical intent and other events not returned by the parser are not claimed as errors. A missing event means it was not found in the available data, not proof it did not happen.
+- Each translated guide links back to its original AoE II Companion page. Builds can vary by civilization, map, balance patch and in-game adaptation; these are reference openings, not immutable scripts.
+
+Source catalogue: https://aoecompanion.com/build-guides
+
 ## Optional Python parser for manual uploads
 
 The Next.js app runs on Vercel. Manual replay file parsing uses a separate Python service because parsing `.aoe2record` files is CPU- and memory-intensive and should not run inside a short-lived Next.js request.

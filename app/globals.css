@@ -1991,3 +1991,178 @@ body:has(.browser-page:not(.coach-page)):before {
   .player-profile-versus { display: none; }
   .player-profile-match-player { grid-template-columns: minmax(0,1fr) auto auto; }
 }
+
+
+/* AoE II Companion build-guide catalogue and strategy comparison */
+.coach-build-catalog { margin-top: 18px; }
+.coach-build-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 520px;
+  margin: 5px 0 21px;
+  padding: 0 12px;
+  min-height: 42px;
+  color: #cbb987;
+  background: #19231b;
+  border: 1px solid #5a684d;
+}
+.coach-build-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #f0e5cc;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+}
+.coach-build-search input::placeholder { color: #89937f; }
+.coach-build-category { margin-top: 18px; }
+.coach-build-category-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #566047;
+}
+.coach-build-category-heading h3 {
+  margin: 0;
+  color: #e8d9b7;
+  font: 700 20px 'Barlow Condensed';
+}
+.coach-build-category-heading span { color: #9da892; font-size: 9px; }
+.coach-build-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+}
+.coach-build-card {
+  min-width: 0;
+  padding: 14px;
+  background: linear-gradient(145deg,#202b22,#182119);
+  border: 1px solid #4d5a43;
+  box-shadow: inset 0 0 0 2px #171e18;
+}
+.coach-build-card-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.coach-build-original { color: #d8b36b; font-size: 9px; font-weight: 800; letter-spacing: .25px; }
+.coach-build-card-title h4 {
+  margin: 3px 0 0;
+  color: #f1e4c7;
+  font: 700 19px/1.15 'Barlow Condensed';
+}
+.coach-build-difficulty {
+  flex: none;
+  padding: 4px 6px;
+  color: #d5d9b6;
+  background: #293528;
+  border: 1px solid #536044;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.coach-build-difficulty.intermediate { color: #e5c780; border-color: #867044; background: #332d1d; }
+.coach-build-difficulty.advanced { color: #e7a995; border-color: #855d4c; background: #32231e; }
+.coach-build-card > p {
+  min-height: 42px;
+  margin: 10px 0;
+  color: #b9c1ae;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.coach-build-steps { border-top: 1px solid #46503e; padding-top: 8px; }
+.coach-build-steps summary {
+  color: #e1c27a;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.coach-build-steps ol { display: grid; gap: 9px; margin: 10px 0 4px; padding-left: 20px; }
+.coach-build-steps li { color: #c5cdbb; font-size: 9px; line-height: 1.5; padding-left: 2px; }
+.coach-build-steps li b { color: #eddfc1; font-size: 10px; }
+.coach-build-steps li p { margin: 3px 0; color: #aeb9a4; font-size: 9px; }
+.coach-build-steps li small { color: #d3b46e; font-size: 8px; }
+.coach-build-source {
+  display: inline-flex;
+  margin-top: 10px;
+  color: #e1c27a;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.coach-build-source:hover { color: #fff0c9; text-decoration: underline; }
+.coach-build-comparison {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(145deg,#202b22,#182119);
+  border: 1px solid #596746;
+  box-shadow: inset 0 0 0 2px #171e18;
+}
+.coach-build-comparison-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.coach-build-comparison-heading h3 {
+  margin: 4px 0 1px;
+  color: #f1e4c7;
+  font: 700 25px 'Barlow Condensed';
+}
+.coach-build-comparison-heading p { margin: 0; color: #9ea991; font-size: 9px; }
+.coach-build-adherence {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 1px solid #536044;
+}
+.coach-build-adherence strong { color: #e6c47b; font: 700 30px 'Barlow Condensed'; }
+.coach-build-adherence small { color: #9fa995; font-size: 8px; text-align: right; }
+.coach-build-summary { margin: 11px 0; color: #c5cdbb; font-size: 10px; line-height: 1.55; }
+.coach-build-checklist { display: grid; gap: 7px; }
+.coach-build-check {
+  display: grid;
+  grid-template-columns: 24px minmax(0,1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 10px;
+  background: #1a241c;
+  border: 1px solid #46523e;
+}
+.coach-build-check.observed { border-left: 3px solid #708b59; }
+.coach-build-check.not_detected { border-left: 3px solid #b76c51; background: #2a211d; }
+.coach-build-check.not_verifiable { border-left: 3px solid #8d8e77; background: #22271f; }
+.coach-build-check-marker {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: #d9c28e;
+  background: rgba(0,0,0,.18);
+}
+.coach-build-check.observed .coach-build-check-marker { color: #a7c38d; }
+.coach-build-check.not_detected .coach-build-check-marker { color: #e2a18a; }
+.coach-build-check-content { min-width: 0; }
+.coach-build-check-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; margin-bottom: 4px; }
+.coach-build-check-head span { color: #d5b674; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+.coach-build-check-head b { color: #a9b39f; font-size: 8px; text-transform: uppercase; }
+.coach-build-check.observed .coach-build-check-head b { color: #a7c38d; }
+.coach-build-check.not_detected .coach-build-check-head b { color: #e2a18a; }
+.coach-build-check-content > strong { display: block; color: #efe2c5; font-size: 11px; }
+.coach-build-check-content > p { margin: 4px 0; color: #b9c1ae; font-size: 9px; line-height: 1.55; }
+.coach-build-check-content > small { color: #d3b46e; font-size: 8px; line-height: 1.5; }
+.coach-build-limit { margin: 12px 0 0; padding: 10px; color: #aeb8a4; background: rgba(9,14,10,.35); border: 1px solid #4a5741; font-size: 9px; line-height: 1.6; }
+.coach-build-no-guide { background: #20281f; border-color: #6e6247; }
+.coach-build-no-guide h3 { margin: 0 0 6px; color: #e6c47b; font: 700 19px 'Barlow Condensed'; }
+.coach-build-no-guide p { margin: 0; color: #b9c1ae; font-size: 10px; line-height: 1.6; }
+.coach-build-catalog .coach-footnote a { color: #e1c27a; }
+@media (max-width: 760px) {
+  .coach-build-grid { grid-template-columns: 1fr; }
+  .coach-build-card > p { min-height: 0; }
+  .coach-build-comparison { padding: 12px; }
+}
