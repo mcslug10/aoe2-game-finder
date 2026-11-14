@@ -1350,3 +1350,39 @@ body:has(.browser-page:not(.coach-page)):before {
   .game-ui .close-room-btn,
   .game-ui .room-action-buttons .join-btn { min-height: 36px; }
 }
+
+
+/* Keep creator room controls visible while the room chat is open */
+.game-ui .chat-room-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  position: relative;
+  z-index: 2;
+}
+.game-ui .chat-close-room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: #fff0c9;
+  background: linear-gradient(180deg, #8d3a27, #551b16);
+  border: 1px solid #a77c4a;
+  box-shadow: inset 0 1px rgba(255,239,190,.2), 0 2px 4px rgba(67,28,17,.2);
+  font: 700 9px 'Cinzel', Georgia, serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.game-ui .chat-close-room-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #a94930, #6c2118);
+  border-color: #e0b56d;
+}
+.game-ui .chat-close-room-btn:disabled { opacity: .58; cursor: wait; }
+@media (max-width: 760px) {
+  .game-ui .chat-room-controls { gap: 5px; }
+  .game-ui .chat-close-room-btn { font-size: 8px; padding: 6px 7px; }
+}
