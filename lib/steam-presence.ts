@@ -78,7 +78,6 @@ export async function getSteamPresenceForProfileIds(profileIds: number[]): Promi
   }));
 
   const withSteamIds = profiles.filter((profile): profile is { profileId: number; steamId: string } => Boolean(profile.steamId));
-  const withoutSteamIds = profiles.filter((profile) => !profile.steamId);
   if (!withSteamIds.length) {
     return uniqueIds.map((profileId) => ({
       profileId, steamId: null,
@@ -87,20 +86,24 @@ export async function getSteamPresenceForProfileIds(profileIds: number[]): Promi
     }));
   }
 
-  const url = new URL("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/");
-  url.searchParams.set("key", apiKey);
-  url.searchParams.set("steamids", withSteamIds.map((profile) => profile.steamId).slice(0, 100).join(","));
-
-  let summaries: SteamPlayerSummary[];
+  const summaries: SteamPlayerSummary[] = [];
   try {
-    const response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 45 },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!response.ok) throw new Error(`Steam API HTTP ${response.status}`);
-    const payload = await response.json() as { response?: { players?: SteamPlayerSummary[] } };
-    summaries = payload.response?.players ?? [];
+    // Steam accepts at most 100 SteamIDs per GetPlayerSummaries call.
+    for (let start = 0; start < withSteamIds.length; start += 100) {
+      const batch = withSteamIds.slice(start, start + 100);
+      const url = new URL("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/");
+      url.searchParams.set("key", apiKey);
+      url.searchParams.set("steamids", batch.map((profile) => profile.steamId).join(","));
+
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 45 },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!response.ok) throw new Error(`Steam API HTTP ${response.status}`);
+      const payload = await response.json() as { response?: { players?: SteamPlayerSummary[] } };
+      summaries.push(...(payload.response?.players ?? []));
+    }
   } catch (error) {
     console.error("Steam presence lookup failed", error instanceof Error ? error.message : String(error));
     return uniqueIds.map((profileId) => {
