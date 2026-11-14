@@ -77,13 +77,18 @@ export async function getSteamPresenceForProfileIds(profileIds: number[]): Promi
     }
   }));
 
-  const withSteamIds = profiles.filter((profile): profile is { profileId: number; steamId: string; lookupFailed: false } => Boolean(profile.steamId));
+  const withSteamIds = profiles
+    .filter((profile) => Boolean(profile.steamId))
+    .map((profile) => ({ profileId: profile.profileId, steamId: profile.steamId as string }));
   if (!withSteamIds.length) {
-    return uniqueIds.map((profileId) => ({
-      profileId, steamId: null,
-      state: profile?.lookupFailed ? "error" : "no_steam_id",
-      checkedAt,
-    }));
+    return uniqueIds.map((profileId) => {
+      const profile = profiles.find((item) => item.profileId === profileId);
+      return {
+        profileId, steamId: null,
+        state: profile?.lookupFailed ? "error" : "no_steam_id",
+        checkedAt,
+      };
+    });
   }
 
   const summaries: SteamPlayerSummary[] = [];
