@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
     // Split large worldwide watchlists into manageable query strings. Two concurrent
     // requests keep the upstream match-history rate manageable.
     const profileChunks: number[][] = [];
-    for (let index = 0; index < profileIds.length; index += 500) {
-      profileChunks.push(profileIds.slice(index, index + 500));
+    for (let index = 0; index < profileIds.length; index += 800) {
+      profileChunks.push(profileIds.slice(index, index + 800));
     }
 
     const fetchedMatches: CompanionMatch[] = [];
@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
     const cutoff = Date.now() - 30 * 60 * 1000;
     const now = Date.now();
 
-    const matches = fetchedMatches
+    const uniqueFetchedMatches = Array.from(new Map(fetchedMatches.filter((match) => Number(match.matchId) > 0).map((match) => [Number(match.matchId), match])).values());
+    const matches = uniqueFetchedMatches
       .filter((match) => Number.isSafeInteger(Number(match.matchId)) && Number(match.matchId) > 0)
       .map((match) => {
         const players = Array.isArray(match.players)
