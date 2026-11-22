@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
   Castle,
+  Download,
+  History,
   ArrowUpRight,
   Clock3,
   Crown,
@@ -68,6 +70,7 @@ type LivePlayer = {
   name?: string;
   country?: string;
   rating?: number;
+  replay?: boolean;
   civName?: string;
   civ?: string;
 };
@@ -82,6 +85,7 @@ type LiveMatch = {
   mapName?: string;
   map?: string;
   started?: string;
+  finished?: string;
   server?: string;
   teams?: Array<{ teamId?: number; players?: LivePlayer[] }>;
   players?: LivePlayer[];
@@ -144,6 +148,19 @@ function formatRelative(value?: string | null) {
   return "há " + Math.floor(seconds / 3600) + " h";
 }
 
+function mergeRecentMatches(current: LiveMatch[], incoming: LiveMatch[]) {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  const matches = new Map<number, LiveMatch>();
+  for (const match of [...current, ...incoming]) {
+    const finishedAt = new Date(match.finished ?? "").getTime();
+    if (!Number.isFinite(finishedAt) || finishedAt < cutoff || finishedAt > Date.now() + 60_000) continue;
+    matches.set(match.matchId, match);
+  }
+  return Array.from(matches.values())
+    .sort((a, b) => new Date(b.finished ?? 0).getTime() - new Date(a.finished ?? 0).getTime())
+    .slice(0, 60);
+}
+
 function statusForPlayer(
   profileId: number,
   matches: LiveMatch[],
@@ -179,6 +196,9 @@ export default function LiveTrackerPage() {
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [recentMatches, setRecentMatches] = useState<LiveMatch[]>([]);
+  const [recentMatchesError, setRecentMatchesError] = useState("");
+  const liveMatchesRef = useRef<LiveMatch[]>([]);
   const [queueConnection, setQueueConnection] = useState<ConnectionState>("connecting");
   const [matchConnection, setMatchConnection] = useState<ConnectionState>("connecting");
   const [socketUpdatedAt, setSocketUpdatedAt] = useState<string | null>(null);
@@ -303,21 +323,27 @@ export default function LiveTrackerPage() {
     };
 
     const handleMatchEvents = (events: Record<string, unknown>[]) => {
-      setLiveMatches((current) => {
-        const next = new Map(current.map((match) => [String(match.matchId), match]));
-        for (const event of events) {
-          const payload = asRecord(event.data);
-          if (!payload) continue;
-          const type = String(event.type ?? "");
-          const matchId = Number(payload.matchId);
-          if (type === "matchRemoved") {
-            next.delete(String(matchId));
-          } else if ((type === "matchAdded" || type === "matchUpdated") && Number.isSafeInteger(matchId) && matchId > 0) {
-            next.set(String(matchId), payload as unknown as LiveMatch);
-          }
+      const next = new Map(liveMatchesRef.current.map((match) => [String(match.matchId), match]));
+      const justFinished: LiveMatch[] = [];
+      for (const event of events) {
+        const payload = asRecord(event.data);
+        if (!payload) continue;
+        const type = String(event.type ?? "");
+        const matchId = Number(payload.matchId);
+        if (type === "matchRemoved") {
+          const previous = next.get(String(matchId));
+          if (previous) justFinished.push({ ...previous, finished: new Date().toISOString() });
+          next.delete(String(matchId));
+        } else if ((type === "matchAdded" || type === "matchUpdated") && Number.isSafeInteger(matchId) && matchId > 0) {
+          next.set(String(matchId), payload as unknown as LiveMatch);
         }
-        return Array.from(next.values()).slice(-300);
-      });
+      }
+      const updated = Array.from(next.values()).slice(-300);
+      liveMatchesRef.current = updated;
+      setLiveMatches(updated);
+      if (justFinished.length) {
+        setRecentMatches((current) => mergeRecentMatches(current, justFinished));
+      }
     };
 
     queueSocket = connect("queueing", setQueueConnection, handleQueueEvents);
@@ -338,6 +364,40 @@ export default function LiveTrackerPage() {
     () => new Set(monitoredPlayers.map((player) => player.profileId)),
     [monitoredPlayers],
   );
+  const monitoredProfileIds = useMemo(
+    () => monitoredPlayers.map((player) => player.profileId).filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
+    [monitoredPlayers],
+  );
+
+  const loadRecentMatches = useCallback(async () => {
+    if (!monitoredProfileIds.length) return;
+    try {
+      const response = await fetch("/api/live/recent-matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileIds: monitoredProfileIds, mode }),
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível consultar as partidas encerradas.");
+      setRecentMatches((current) => mergeRecentMatches(current, Array.isArray(data.matches) ? data.matches as LiveMatch[] : []));
+      setRecentMatchesError("");
+    } catch (error) {
+      setRecentMatchesError(error instanceof Error ? error.message : "Histórico recente temporariamente indisponível.");
+    }
+  }, [monitoredProfileIds, mode]);
+
+  useEffect(() => {
+    setRecentMatches([]);
+    setRecentMatchesError("");
+  }, [mode, region]);
+
+  useEffect(() => {
+    if (loading || monitoredProfileIds.length === 0) return;
+    void loadRecentMatches();
+    const timer = window.setInterval(() => void loadRecentMatches(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [loadRecentMatches, loading, monitoredProfileIds.length]);
 
   const visiblePlayers = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
@@ -568,6 +628,55 @@ export default function LiveTrackerPage() {
               </div>
             )}
             {matchedQueue.length > 0 ? <div className={styles.matchedNote}>{matchedQueue.length} grupo(s) de fila encontrou(aram) uma partida. Aguardando o feed confirmar a partida ativa.</div> : null}
+          </section>
+
+          <section className={styles.panel}>
+            <div className={styles.panelHeaderCompact}>
+              <div><span className={styles.eyebrow}>HISTÓRICO RECENTE</span><h3><History size={17} /> PARTIDAS ENCERRADAS</h3></div>
+              <span className={styles.countBadge}>{recentMatches.length}</span>
+            </div>
+            <p className={styles.recentSubtitle}>Partidas concluídas nos últimos 30 minutos · {region === "BR" ? "Brasil" : "Mundo"} · {mode}</p>
+            {recentMatches.length === 0 ? (
+              <div className={styles.sideEmpty}>
+                {recentMatchesError
+                  ? "Não foi possível carregar o histórico recente agora. " + recentMatchesError
+                  : "Nenhuma partida encerrada nos últimos 30 minutos foi encontrada para os jogadores monitorados."}
+              </div>
+            ) : (
+              <div className={styles.matchList}>
+                {recentMatches.map((match) => {
+                  const playersInMatch = matchPlayers(match);
+                  const replayPlayer = playersInMatch.find((player) => player.replay === true && Number(player.profileId) > 0);
+                  return <article className={styles.matchCard} key={match.matchId}>
+                    <div className={styles.matchTop}>
+                      <span className={styles.completedTag}><i /> ENCERRADA</span>
+                      <small>{formatRelative(match.finished)}</small>
+                    </div>
+                    <strong className={styles.matchMap}>{match.mapName ?? match.map ?? "Mapa não identificado"}</strong>
+                    <div className={styles.matchPlayers}>
+                      {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
+                        <span>{flagEmoji(player.country)}</span>
+                        <strong>{player.name ?? "Jogador"}</strong>
+                        {typeof player.rating === "number" ? <small>{player.rating}</small> : null}
+                        {player.won === true ? <b>VITÓRIA</b> : null}
+                        {player.won === false ? <small>DERROTA</small> : null}
+                      </div>)}
+                    </div>
+                    <div className={styles.matchBottom}>
+                      <span>{match.leaderboardName ?? match.gameModeName ?? (mode === "1v1" ? "1x1" : "TG")} · Finalizada às {formatTime(match.finished)}</span>
+                      {replayPlayer ? (
+                        <a href={"https://aoe.ms/replay/?gameId=" + match.matchId + "&profileId=" + replayPlayer.profileId} target="_blank" rel="noreferrer">
+                          <Download size={14} /> BAIXAR REPLAY
+                        </a>
+                      ) : (
+                        <span className={styles.replayUnavailable}>REC INDISPONÍVEL</span>
+                      )}
+                    </div>
+                  </article>;
+                })}
+              </div>
+            )}
+            <div className={styles.replayNote}>O download oficial é entregue em ZIP. Extraia o arquivo <strong>.aoe2record</strong> para abrir a gravação no Age of Empires II: Definitive Edition.</div>
           </section>
         </aside>
       </div>
