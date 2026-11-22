@@ -1,4 +1,3 @@
-:global(*) { box-sizing: border-box; }
 .page {
   --bg: #101710;
   --panel: rgba(28, 39, 28, .95);
