@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  Castle,
   ArrowUpRight,
   Clock3,
   Crown,
@@ -376,18 +377,18 @@ export default function LiveTrackerPage() {
     <main className={styles.page}>
       <div className={styles.backdrop} />
       <header className={styles.header}>
-        <Link href="/" className={styles.backLink}><ArrowLeft size={15} /> Game Finder</Link>
-        <div className={styles.brand}>
-          <div className={styles.brandIcon}><Swords size={24} /></div>
-          <div>
-            <span className={styles.brandEyebrow}>AGE OF EMPIRES II · DEFINITIVE EDITION</span>
+        <Link href="/" className={styles.brand} aria-label="Voltar ao AOE2 Game Finder">
+          <div className={styles.brandIcon}><Castle size={24} /></div>
+          <div className={styles.brandCopy}>
             <h1>AOE2 <strong>LIVE TRACKER</strong></h1>
+            <span>AGE OF EMPIRES II · DEFINITIVE EDITION</span>
           </div>
-        </div>
+        </Link>
         <div className={styles.headerRight}>
           <span className={styles.livePulse}><i /> MONITORAMENTO AO VIVO</span>
           <span className={styles.sourceName}>DADOS DO AOE II COMPANION</span>
         </div>
+        <Link href="/" className={styles.backLink}><ArrowLeft size={16} /> VOLTAR AO GAME FINDER</Link>
       </header>
 
       <section className={styles.hero}>
