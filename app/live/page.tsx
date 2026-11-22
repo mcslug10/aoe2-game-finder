@@ -23,6 +23,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import styles from "./live.module.css";
+import LiveChat from "./LiveChat";
 
 type Mode = "1v1" | "TG";
 type Region = "WORLD" | "BR";
@@ -576,6 +577,7 @@ export default function LiveTrackerPage() {
         <span>Dados de ranking e presença fornecidos pelo AoE II Companion. Status ao vivo pode ter atraso ou indisponibilidade.</span>
         <Link href="/">VOLTAR AO GAME FINDER <ArrowUpRight size={13} /></Link>
       </footer>
+      <LiveChat />
     </main>
   );
 }
