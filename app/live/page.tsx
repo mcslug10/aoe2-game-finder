@@ -374,6 +374,12 @@ export default function LiveTrackerPage() {
     () => new Set(monitoredPlayers.map((player) => player.profileId)),
     [monitoredPlayers],
   );
+  // The selected leaderboard supplies the current rating: 1v1 ratings in 1v1 mode,
+  // and the expanded team-game leaderboard ratings in TG mode.
+  const monitoredPlayerRatings = useMemo(
+    () => new Map(monitoredPlayers.map((player) => [player.profileId, player.rating])),
+    [monitoredPlayers],
+  );
   const monitoredProfileIds = useMemo(
     () => monitoredPlayers.map((player) => player.profileId).filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
     [monitoredPlayers],
@@ -614,7 +620,16 @@ export default function LiveTrackerPage() {
                   const selectedPlayers = item.players.filter((player) => rankedProfileIds.has(Number(player.profileId)));
                   return <article className={styles.queueItem} key={item.id}>
                     <div className={styles.queueItemTop}><span className={styles.statusQueue}>NA FILA</span><small>{formatRelative(item.queueingSince)}</small></div>
-                    {selectedPlayers.map((player) => <div className={styles.queuePlayer} key={player.profileId}><span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong><small>Top player</small></div>)}
+                    {selectedPlayers.map((player) => {
+                      const currentRating = monitoredPlayerRatings.get(Number(player.profileId));
+                      return <div className={styles.queuePlayer} key={player.profileId}>
+                        <span>{flagEmoji(player.country)}</span>
+                        <strong>{player.name ?? "Jogador"}</strong>
+                        <small>{typeof currentRating === "number" && currentRating > 0
+                          ? currentRating.toLocaleString("pt-BR") + " ELO"
+                          : "ELO indisponível"}</small>
+                      </div>;
+                    })}
                     <p>Modalidade ainda não divulgada pelo feed.</p>
                   </article>;
                 })}

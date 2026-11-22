@@ -920,3 +920,18 @@
   .resultSide .matchPlayer{padding:5px 4px;gap:4px}
   .resultSide .matchPlayer strong{font-size:10px}
 }
+
+
+/* Current rating badge in the matchmaking queue. */
+.queuePlayer small {
+  margin-left: auto;
+  flex: none;
+  color: #842126;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  letter-spacing: .25px;
+}
+@media (max-width: 560px) {
+  .queuePlayer small { font-size: 11px; }
+}
