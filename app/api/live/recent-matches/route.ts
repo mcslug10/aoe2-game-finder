@@ -60,42 +60,57 @@ export async function POST(request: NextRequest) {
       (Array.isArray(body.profileIds) ? body.profileIds : [])
         .map((value) => Number(value))
         .filter((value) => Number.isSafeInteger(value) && value > 0),
-    )).slice(0, 800);
+    )).slice(0, 15000);
 
-    if (!profileIds.length) return NextResponse.json({ matches: [] });
+    if (!profileIds.length) return NextResponse.json({ matches: [], checkedPlayers: 0, windowMinutes: 30 });
 
-    const url = new URL("https://data.aoe2companion.com/api/matches");
-    url.searchParams.set("profile_ids", profileIds.join(","));
-    url.searchParams.set("leaderboard_ids", mode === "1v1" ? "rm_1v1" : "rm_team");
-    url.searchParams.set("use_enums", "true");
-    url.searchParams.set("page", "1");
-    url.searchParams.set("per_page", "100");
-    url.searchParams.set("language", "en");
-
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "AOE2-Game-Finder/1.0 (https://aoe2-game-finder.vercel.app)",
-      },
-      next: { revalidate: 45 },
-      signal: AbortSignal.timeout(18_000),
-    });
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.error("AoE2 Companion recent matches", { status: response.status, detail: detail.slice(0, 250) });
-      return NextResponse.json(
-        { error: "O histórico de partidas do AoE II Companion está temporariamente indisponível." },
-        { status: 502, headers: { "Cache-Control": "no-store" } },
-      );
+    // Split large worldwide watchlists into manageable query strings. Two concurrent
+    // requests keep the upstream match-history rate manageable.
+    const profileChunks: number[][] = [];
+    for (let index = 0; index < profileIds.length; index += 500) {
+      profileChunks.push(profileIds.slice(index, index + 500));
     }
 
-    const payload = await response.json() as { matches?: CompanionMatch[] };
+    const fetchedMatches: CompanionMatch[] = [];
+    for (let start = 0; start < profileChunks.length; start += 2) {
+      const batch = profileChunks.slice(start, start + 2);
+      const payloads = await Promise.all(batch.map(async (profileChunk) => {
+        const url = new URL("https://data.aoe2companion.com/api/matches");
+        url.searchParams.set("profile_ids", profileChunk.join(","));
+        url.searchParams.set("leaderboard_ids", mode === "1v1" ? "rm_1v1" : "rm_team");
+        url.searchParams.set("use_enums", "true");
+        url.searchParams.set("page", "1");
+        url.searchParams.set("per_page", "100");
+        url.searchParams.set("language", "en");
+
+        const response = await fetch(url, {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "AOE2-Game-Finder/1.0 (https://aoe2-game-finder.vercel.app)",
+          },
+          next: { revalidate: 45 },
+          signal: AbortSignal.timeout(18_000),
+        });
+
+        if (!response.ok) {
+          const detail = await response.text().catch(() => "");
+          console.error("AoE2 Companion recent matches", { status: response.status, detail: detail.slice(0, 250) });
+          throw new Error("O histórico de partidas do AoE II Companion está temporariamente indisponível.");
+        }
+
+        return await response.json() as { matches?: CompanionMatch[] };
+      }));
+
+      for (const payload of payloads) {
+        fetchedMatches.push(...(Array.isArray(payload.matches) ? payload.matches : []));
+      }
+    }
+
     const monitored = new Set(profileIds);
     const cutoff = Date.now() - 30 * 60 * 1000;
     const now = Date.now();
 
-    const matches = (Array.isArray(payload.matches) ? payload.matches : [])
+    const matches = fetchedMatches
       .filter((match) => Number.isSafeInteger(Number(match.matchId)) && Number(match.matchId) > 0)
       .map((match) => {
         const players = Array.isArray(match.players)
@@ -136,7 +151,7 @@ export async function POST(request: NextRequest) {
       }));
 
     return NextResponse.json(
-      { matches, checkedPlayers: profileIds.length, windowMinutes: 30 },
+      { matches, checkedPlayers: profileIds.length, truncated: Array.isArray(body.profileIds) && body.profileIds.length > 15000, windowMinutes: 30 },
       { headers: { "Cache-Control": "public, s-maxage=45, stale-while-revalidate=60" } },
     );
   } catch (error) {
