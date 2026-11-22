@@ -678,15 +678,51 @@ export default function LiveTrackerPage() {
                       <small>{formatRelative(match.finished)}</small>
                     </div>
                     <strong className={styles.matchMap}>{match.mapName ?? match.map ?? "Mapa não identificado"}</strong>
-                    <div className={styles.matchPlayers}>
-                      {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
-                        <span>{flagEmoji(player.country)}</span>
-                        <strong>{player.name ?? "Jogador"}</strong>
-                        {typeof player.rating === "number" ? <small>{player.rating}</small> : null}
-                        {player.won === true ? <b>VITÓRIA</b> : null}
-                        {player.won === false ? <small>DERROTA</small> : null}
-                      </div>)}
-                    </div>
+                    {(() => {
+                      const winners = playersInMatch.filter((player) => player.won === true);
+                      const losers = playersInMatch.filter((player) => player.won === false);
+                      const unknown = playersInMatch.filter((player) => player.won !== true && player.won !== false);
+                      const renderPlayers = (players: LivePlayer[], side: "winner" | "loser" | "unknown") => (
+                        players.map((player, index) => <div
+                          className={styles.matchPlayer}
+                          key={String(player.profileId ?? player.name ?? side) + "-" + index}
+                        >
+                          <span>{flagEmoji(player.country)}</span>
+                          <strong>{player.name ?? "Jogador"}</strong>
+                          {typeof player.rating === "number" ? <small>{player.rating}</small> : null}
+                        </div>)
+                      );
+                      return <>
+                        <div className={styles.resultSides}>
+                          <div className={styles.resultSide + " " + styles.winnerSide}>
+                            <div className={styles.resultSideHeader}>
+                              <Trophy size={14} />
+                              <strong>VENCEDORES</strong>
+                              <span>{winners.length}</span>
+                            </div>
+                            <div className={styles.resultSidePlayers}>
+                              {winners.length ? renderPlayers(winners, "winner") : <small className={styles.noSidePlayers}>—</small>}
+                            </div>
+                          </div>
+                          <div className={styles.resultSide + " " + styles.loserSide}>
+                            <div className={styles.resultSideHeader}>
+                              <ShieldAlert size={14} />
+                              <strong>PERDEDORES</strong>
+                              <span>{losers.length}</span>
+                            </div>
+                            <div className={styles.resultSidePlayers}>
+                              {losers.length ? renderPlayers(losers, "loser") : <small className={styles.noSidePlayers}>—</small>}
+                            </div>
+                          </div>
+                        </div>
+                        {unknown.length ? (
+                          <div className={styles.unknownSide}>
+                            <span>RESULTADO NÃO INFORMADO</span>
+                            <div className={styles.resultSidePlayers}>{renderPlayers(unknown, "unknown")}</div>
+                          </div>
+                        ) : null}
+                      </>;
+                    })()}
                     <div className={styles.matchBottom}>
                       <span>{match.leaderboardName ?? match.gameModeName ?? (mode === "1v1" ? "1x1" : "TG")} · Finalizada às {formatTime(match.finished)}</span>
                       {replayPlayer ? (
