@@ -38,7 +38,7 @@ const TRACKER_FETCH_CONCURRENCY = 4;
 
 function normalizeDate(value?: string | Date) {
   if (!value) return null;
-  const date = new Date(value);
+  const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
