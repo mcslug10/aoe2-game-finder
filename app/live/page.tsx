@@ -168,6 +168,8 @@ export default function LiveTrackerPage() {
   const [region, setRegion] = useState<Region>("WORLD");
   const [search, setSearch] = useState("");
   const [players, setPlayers] = useState<RankedPlayer[]>([]);
+  const [trackedPlayers, setTrackedPlayers] = useState<RankedPlayer[]>([]);
+  const [trackedPlayersTotal, setTrackedPlayersTotal] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -190,11 +192,15 @@ export default function LiveTrackerPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Não foi possível carregar o ranking.");
       setPlayers(Array.isArray(data.players) ? data.players : []);
+      setTrackedPlayers(Array.isArray(data.trackedPlayers) ? data.trackedPlayers : []);
+      setTrackedPlayersTotal(Number(data.trackedPlayersTotal ?? data.trackedPlayers?.length ?? 0));
       setTotalPlayers(Number(data.total ?? data.players?.length ?? 0));
       setUpdatedAt(data.updatedAt ?? new Date().toISOString());
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Falha ao consultar o ranking.");
       setPlayers([]);
+      setTrackedPlayers([]);
+      setTrackedPlayersTotal(0);
       setTotalPlayers(0);
     } finally {
       setLoading(false);
@@ -324,9 +330,11 @@ export default function LiveTrackerPage() {
     };
   }, []);
 
+  const hasExpandedBrazilTeamTracking = mode === "TG" && region === "BR";
+  const monitoredPlayers = hasExpandedBrazilTeamTracking ? trackedPlayers : players;
   const rankedProfileIds = useMemo(
-    () => new Set(players.map((player) => player.profileId)),
-    [players],
+    () => new Set(monitoredPlayers.map((player) => player.profileId)),
+    [monitoredPlayers],
   );
 
   const visiblePlayers = useMemo(() => {
@@ -441,6 +449,13 @@ export default function LiveTrackerPage() {
         </article>
       </section>
 
+      {hasExpandedBrazilTeamTracking ? (
+        <div className={styles.trackingNotice}>
+          <strong>MONITORAMENTO AMPLIADO ATIVO</strong>
+          <span>{trackedPlayersTotal.toLocaleString("pt-BR")} perfis do ranking TG Brasil com ELO 1200+ estão sendo acompanhados, inclusive fora do Top 100. Jogos e filas desses jogadores aparecem nos painéis ao lado.</span>
+        </div>
+      ) : null}
+
       <div className={styles.contentGrid}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
@@ -499,7 +514,7 @@ export default function LiveTrackerPage() {
               </table>
             </div>
           )}
-          <div className={styles.tableFootnote}>* O serviço informa que o jogador entrou na fila, mas não revela a modalidade selecionada até o matchmaking formar uma partida. O status é um sinal de fila, não uma confirmação de 1x1 ou TG.</div>
+          <div className={styles.tableFootnote}>* No modo TG Brasil, a detecção inclui todos os perfis dessa ladder com ELO 1200+. O feed de fila não confirma a modalidade enquanto a partida ainda está sendo formada; por isso, a fila mostra jogadores pertencentes a esse grupo monitorado. As partidas ao vivo são filtradas pela modalidade TG e pela participação de pelo menos um desses jogadores.</div>
         </section>
 
         <aside className={styles.sideColumn}>
@@ -509,7 +524,7 @@ export default function LiveTrackerPage() {
               <span className={styles.countBadge}>{visibleQueue.length}</span>
             </div>
             {visibleQueue.length === 0 ? (
-              <div className={styles.sideEmpty}>{queueConnection === "connected" ? "Nenhum jogador deste ranking foi detectado na fila neste momento." : "Aguardando conexão com o feed de fila."}</div>
+              <div className={styles.sideEmpty}>{queueConnection === "connected" ? "Nenhum jogador do grupo monitorado foi detectado na fila neste momento." : "Aguardando conexão com o feed de fila."}</div>
             ) : (
               <div className={styles.queueList}>
                 {visibleQueue.slice(0, 12).map((item) => {
@@ -530,7 +545,7 @@ export default function LiveTrackerPage() {
               <span className={styles.countBadgeLive}>{visibleMatches.length}</span>
             </div>
             {visibleMatches.length === 0 ? (
-              <div className={styles.sideEmpty}>{matchConnection === "connected" ? "Nenhuma partida deste ranking foi detectada no feed ao vivo." : "Aguardando partidas do AoE II Companion."}</div>
+              <div className={styles.sideEmpty}>{matchConnection === "connected" ? "Nenhuma partida com jogadores do grupo monitorado foi detectada no feed ao vivo." : "Aguardando partidas do AoE II Companion."}</div>
             ) : (
               <div className={styles.matchList}>
                 {visibleMatches.slice(0, 8).map((match) => {
@@ -542,10 +557,10 @@ export default function LiveTrackerPage() {
                     <div className={styles.matchPlayers}>
                       {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
                         <span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
-                        {rankedProfileIds.has(Number(player.profileId)) ? <b>TOP</b> : null}
+                        {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasExpandedBrazilTeamTracking ? "1200+" : "TOP"}</b> : null}
                       </div>)}
                     </div>
-                    <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} do ranking</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> ASSISTIR NO JOGO</a></div>
+                    <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} monitorado(s)</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> ASSISTIR NO JOGO</a></div>
                   </article>;
                 })}
               </div>

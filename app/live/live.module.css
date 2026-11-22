@@ -194,3 +194,72 @@
   .matchBottom { align-items: flex-start; flex-direction: column; }
   .footer { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Typography enlarged for comfortable desktop and mobile reading. */
+.backLink { font-size: 13px; }
+.brandEyebrow { font-size: 10px; }
+.brand h1 { font-size: 24px; }
+.livePulse { font-size: 11px; }
+.sourceName { font-size: 10px; }
+.eyebrow { font-size: 11px; }
+.hero p { font-size: 15px; }
+.connectionOn, .connectionOff { font-size: 11px; }
+.connectionDetail, .updatedLine { font-size: 11px; }
+.filterLabel { font-size: 11px; }
+.segmented button { font-size: 12px; min-height: 40px; }
+.refreshButton { font-size: 11px; min-height: 40px; }
+.metricCard span { font-size: 10px; }
+.metricCard small { font-size: 11px; }
+.panelHeader h3 { font-size: 22px; }
+.panelHeader p { font-size: 12px; }
+.searchBox { min-height: 38px; }
+.searchBox input { font-size: 12px; }
+.table th { font-size: 10px; }
+.table td { font-size: 12px; }
+.playerCell strong { font-size: 12px; }
+.playerCell small, .peak { font-size: 10px; }
+.statusPlaying, .statusQueue, .statusMatched, .statusIdle { font-size: 10px; }
+.tableFootnote { font-size: 10px; }
+.errorState, .emptyState { font-size: 13px; }
+.errorState strong { font-size: 15px; }
+.errorState span { font-size: 12px; }
+.errorState button { font-size: 11px; }
+.panelHeaderCompact h3 { font-size: 18px; }
+.sideEmpty { font-size: 12px; }
+.queueItemTop > small, .matchTop > small { font-size: 10px; }
+.queuePlayer strong { font-size: 12px; }
+.queuePlayer small, .queueItem p { font-size: 10px; }
+.matchTop > span { font-size: 10px; }
+.matchPlayers { gap: 7px; }
+.matchPlayer { padding: 7px 8px; }
+.matchPlayer strong, .matchPlayer small { font-size: 10px; }
+.matchPlayer b { font-size: 9px; }
+.matchBottom > span { font-size: 10px; }
+.matchBottom a { font-size: 10px; }
+.matchedNote { font-size: 10px; }
+.footer { font-size: 10px; }
+.footer a { font-size: 10px; }
+.trackingNotice {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 1600px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  color: #d5e5c6;
+  background: rgba(46, 71, 40, .58);
+  border: 1px solid rgba(155, 190, 121, .48);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.trackingNotice strong { color: #e6c77d; font-size: 11px; letter-spacing: .8px; }
+@media (max-width: 560px) {
+  .brand h1 { font-size: 19px; }
+  .brandEyebrow { font-size: 9px; }
+  .segmented button { font-size: 11px; min-height: 39px; }
+  .trackingNotice { font-size: 11px; padding: 10px 12px; }
+  .trackingNotice strong { font-size: 10px; }
+}
