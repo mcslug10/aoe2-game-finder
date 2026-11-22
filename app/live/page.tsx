@@ -367,8 +367,9 @@ export default function LiveTrackerPage() {
     };
   }, []);
 
-  const hasExpandedBrazilTeamTracking = mode === "TG" && region === "BR";
-  const monitoredPlayers = hasExpandedBrazilTeamTracking ? trackedPlayers : players;
+  const hasExpandedTeamTracking = mode === "TG";
+  const trackingMinRating = region === "BR" ? 1200 : 1300;
+  const monitoredPlayers = hasExpandedTeamTracking ? trackedPlayers : players;
   const rankedProfileIds = useMemo(
     () => new Set(monitoredPlayers.map((player) => player.profileId)),
     [monitoredPlayers],
@@ -531,10 +532,10 @@ export default function LiveTrackerPage() {
         </article>
       </section>
 
-      {hasExpandedBrazilTeamTracking ? (
+      {hasExpandedTeamTracking ? (
         <div className={styles.trackingNotice}>
           <strong>MONITORAMENTO AMPLIADO ATIVO</strong>
-          <span>{trackedPlayersTotal.toLocaleString("pt-BR")} perfis do ranking TG Brasil com ELO 1200+ estão sendo acompanhados, inclusive fora do Top 100. Jogos e filas desses jogadores aparecem nos painéis ao lado.</span>
+          <span>{trackedPlayersTotal.toLocaleString("pt-BR")} perfis do ranking TG {region === "BR" ? "Brasil" : "Mundo"} com ELO {trackingMinRating}+ estão sendo acompanhados, inclusive fora do Top 100. Jogos e filas desses jogadores aparecem nos painéis ao lado.</span>
         </div>
       ) : null}
 
@@ -639,7 +640,7 @@ export default function LiveTrackerPage() {
                     <div className={styles.matchPlayers}>
                       {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
                         <span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
-                        {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasExpandedBrazilTeamTracking ? "1200+" : "TOP"}</b> : null}
+                        {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasExpandedTeamTracking ? trackingMinRating + "+" : "TOP"}</b> : null}
                       </div>)}
                     </div>
                     <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} monitorado(s)</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> ASSISTIR NO JOGO</a></div>

@@ -33,6 +33,7 @@ const LEADERBOARDS = {
 } as const;
 
 const TRACKED_TG_BRAZIL_MIN_RATING = 1200;
+const TRACKED_TG_WORLD_MIN_RATING = 1300;
 const TRACKER_PAGE_SIZE = 100;
 const TRACKER_FETCH_CONCURRENCY = 4;
 
@@ -102,31 +103,44 @@ async function fetchLeaderboardPage(
   return await response.json() as CompanionLeaderboardPayload;
 }
 
-async function fetchExpandedBrazilTeamPlayers(firstPage: CompanionLeaderboardPayload) {
+async function fetchExpandedTeamPlayers(
+  firstPage: CompanionLeaderboardPayload,
+  region: "WORLD" | "BR",
+  minimumRating: number,
+) {
   const total = Math.max(0, Number(firstPage.total ?? validPlayers(firstPage.players).length));
   const perPage = Math.max(1, Number(firstPage.perPage ?? TRACKER_PAGE_SIZE));
   const pageCount = Math.ceil(total / perPage);
-
-  // The expanded watchlist is needed only for TG + Brazil. Fetch subsequent pages
-  // in small batches and retain every player whose current team-game rating is >= 1200.
   const rawPlayers: CompanionPlayer[] = [...validPlayers(firstPage.players)];
 
-  for (let start = 2; start <= pageCount; start += TRACKER_FETCH_CONCURRENCY) {
+  // AoE II Companion's leaderboard is ordered by current rating/rank. For the
+  // worldwide watchlist, stop after the first page that crosses below 1300 ELO.
+  // This keeps the all-world scan bounded instead of paging through every ranked account.
+  for (let batchStart = 2; batchStart <= pageCount; batchStart += TRACKER_FETCH_CONCURRENCY) {
     const pageNumbers = Array.from(
-      { length: Math.min(TRACKER_FETCH_CONCURRENCY, pageCount - start + 1) },
-      (_, index) => start + index,
+      { length: Math.min(TRACKER_FETCH_CONCURRENCY, pageCount - batchStart + 1) },
+      (_, index) => batchStart + index,
     );
     const pages = await Promise.all(
-      pageNumbers.map((page) => fetchLeaderboardPage("rm_team", "BR", page, perPage)),
+      pageNumbers.map((page) => fetchLeaderboardPage("rm_team", region, page, perPage)),
     );
-    for (const payload of pages) rawPlayers.push(...validPlayers(payload.players));
+
+    let thresholdReached = false;
+    for (const payload of pages) {
+      const pagePlayers = validPlayers(payload.players);
+      rawPlayers.push(...pagePlayers);
+      if (pagePlayers.some((player) => Number(player.rating ?? 0) < minimumRating)) {
+        thresholdReached = true;
+      }
+    }
+    if (thresholdReached) break;
   }
 
   const distinct = new Map<number, ReturnType<typeof normalizePlayer>>();
   for (const player of rawPlayers) {
     const normalized = normalizePlayer(player);
-    if (normalized.rating < TRACKED_TG_BRAZIL_MIN_RATING) continue;
-    if (normalized.country && normalized.country !== "BR") continue;
+    if (normalized.rating < minimumRating) continue;
+    if (region === "BR" && normalized.country && normalized.country !== "BR") continue;
     distinct.set(normalized.profileId, normalized);
   }
 
@@ -158,9 +172,12 @@ export async function GET(request: NextRequest) {
     const players = validPlayers(firstPage.players).map(normalizePlayer);
     const total = Number(firstPage.total ?? players.length);
 
-    const expandedBrazilTeamMode = modeParam === "TG" && regionParam === "BR";
-    const trackedPlayers = expandedBrazilTeamMode
-      ? await fetchExpandedBrazilTeamPlayers(firstPage)
+    const expandedTeamMode = modeParam === "TG";
+    const trackingMinRating = regionParam === "BR"
+      ? TRACKED_TG_BRAZIL_MIN_RATING
+      : TRACKED_TG_WORLD_MIN_RATING;
+    const trackedPlayers = expandedTeamMode
+      ? await fetchExpandedTeamPlayers(firstPage, regionParam, trackingMinRating)
       : [];
 
     return NextResponse.json(
@@ -169,7 +186,7 @@ export async function GET(request: NextRequest) {
         total,
         trackedPlayers,
         trackedPlayersTotal: trackedPlayers.length,
-        trackingMinRating: expandedBrazilTeamMode ? TRACKED_TG_BRAZIL_MIN_RATING : null,
+        trackingMinRating: expandedTeamMode ? trackingMinRating : null,
         mode: modeParam,
         region: regionParam,
         leaderboardId,
