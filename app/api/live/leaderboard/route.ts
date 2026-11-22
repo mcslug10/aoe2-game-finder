@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         losses: Number(player.losses ?? 0),
         games: Number(player.games ?? (Number(player.wins ?? 0) + Number(player.losses ?? 0))),
         streak: Number(player.streak ?? 0),
-        lastMatchTime: player.lastMatchTime ? new Date(player.lastMatchTime).toISOString() : null,
+        lastMatchTime: player.lastMatchTime ? new Date(String(player.lastMatchTime)).toISOString() : null,
         avatarSmallUrl: player.avatarSmallUrl ?? null,
         avatarMediumUrl: player.avatarMediumUrl ?? null,
       }));
