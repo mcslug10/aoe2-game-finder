@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         const players = Array.isArray(match.players)
           ? match.players
           : (match.teams ?? []).flatMap((team) => team.players ?? []);
-        const finishedAt = match.finished ? new Date(match.finished).getTime() : NaN;
+        const finishedAt = match.finished ? new Date(String(match.finished)).getTime() : NaN;
         return { match, players, finishedAt };
       })
       .filter(({ match, players, finishedAt }) =>
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
       .slice(0, 60)
       .map(({ match, players }) => ({
         matchId: Number(match.matchId),
-        started: match.started ? new Date(match.started).toISOString() : null,
-        finished: match.finished ? new Date(match.finished).toISOString() : null,
+        started: match.started ? new Date(String(match.started)).toISOString() : null,
+        finished: match.finished ? new Date(String(match.finished)).toISOString() : null,
         leaderboardId: match.leaderboardId ?? null,
         leaderboardName: match.leaderboardName ?? null,
         gameModeName: match.gameModeName ?? null,

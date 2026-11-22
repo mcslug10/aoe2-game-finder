@@ -71,6 +71,7 @@ type LivePlayer = {
   country?: string;
   rating?: number;
   replay?: boolean;
+  won?: boolean;
   civName?: string;
   civ?: string;
 };
