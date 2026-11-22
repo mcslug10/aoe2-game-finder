@@ -200,6 +200,8 @@ export default function LiveTrackerPage() {
   const [recentMatches, setRecentMatches] = useState<LiveMatch[]>([]);
   const [recentMatchesError, setRecentMatchesError] = useState("");
   const liveMatchesRef = useRef<LiveMatch[]>([]);
+  const recentModeRef = useRef<Mode>(mode);
+  const recentTrackedIdsRef = useRef<Set<number>>(new Set());
   const [queueConnection, setQueueConnection] = useState<ConnectionState>("connecting");
   const [matchConnection, setMatchConnection] = useState<ConnectionState>("connecting");
   const [socketUpdatedAt, setSocketUpdatedAt] = useState<string | null>(null);
@@ -333,7 +335,13 @@ export default function LiveTrackerPage() {
         const matchId = Number(payload.matchId);
         if (type === "matchRemoved") {
           const previous = next.get(String(matchId));
-          if (previous) justFinished.push({ ...previous, finished: new Date().toISOString() });
+          if (
+            previous &&
+            isMatchInMode(previous, recentModeRef.current) &&
+            matchPlayers(previous).some((player) => recentTrackedIdsRef.current.has(Number(player.profileId)))
+          ) {
+            justFinished.push({ ...previous, finished: new Date().toISOString() });
+          }
           next.delete(String(matchId));
         } else if ((type === "matchAdded" || type === "matchUpdated") && Number.isSafeInteger(matchId) && matchId > 0) {
           next.set(String(matchId), payload as unknown as LiveMatch);
@@ -369,6 +377,11 @@ export default function LiveTrackerPage() {
     () => monitoredPlayers.map((player) => player.profileId).filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
     [monitoredPlayers],
   );
+
+  useEffect(() => {
+    recentModeRef.current = mode;
+    recentTrackedIdsRef.current = rankedProfileIds;
+  }, [mode, rankedProfileIds]);
 
   const loadRecentMatches = useCallback(async () => {
     if (!monitoredProfileIds.length) return;
@@ -411,6 +424,12 @@ export default function LiveTrackerPage() {
     .filter((match) => matchPlayers(match).some((player) => rankedProfileIds.has(Number(player.profileId))))
     .sort((a, b) => new Date(b.started ?? 0).getTime() - new Date(a.started ?? 0).getTime()),
   [liveMatches, mode, rankedProfileIds]);
+
+  const visibleRecentMatches = useMemo(() => recentMatches
+    .filter((match) => isMatchInMode(match, mode))
+    .filter((match) => matchPlayers(match).some((player) => rankedProfileIds.has(Number(player.profileId))))
+    .sort((a, b) => new Date(b.finished ?? 0).getTime() - new Date(a.finished ?? 0).getTime()),
+  [recentMatches, mode, rankedProfileIds]);
 
   const visibleQueue = useMemo(() => queueItems
     .filter((item) => item.status === "queueing")
@@ -634,10 +653,10 @@ export default function LiveTrackerPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeaderCompact}>
               <div><span className={styles.eyebrow}>HISTÓRICO RECENTE</span><h3><History size={17} /> PARTIDAS ENCERRADAS</h3></div>
-              <span className={styles.countBadge}>{recentMatches.length}</span>
+              <span className={styles.countBadge}>{visibleRecentMatches.length}</span>
             </div>
             <p className={styles.recentSubtitle}>Partidas concluídas nos últimos 30 minutos · {region === "BR" ? "Brasil" : "Mundo"} · {mode}</p>
-            {recentMatches.length === 0 ? (
+            {visibleRecentMatches.length === 0 ? (
               <div className={styles.sideEmpty}>
                 {recentMatchesError
                   ? "Não foi possível carregar o histórico recente agora. " + recentMatchesError
@@ -645,9 +664,13 @@ export default function LiveTrackerPage() {
               </div>
             ) : (
               <div className={styles.matchList}>
-                {recentMatches.map((match) => {
+                {visibleRecentMatches.map((match) => {
                   const playersInMatch = matchPlayers(match);
-                  const replayPlayer = playersInMatch.find((player) => player.replay === true && Number(player.profileId) > 0);
+                  const replayPlayer =
+                    playersInMatch.find((player) =>
+                      Number(player.profileId) > 0 && rankedProfileIds.has(Number(player.profileId)),
+                    ) ??
+                    playersInMatch.find((player) => Number(player.profileId) > 0);
                   return <article className={styles.matchCard} key={match.matchId}>
                     <div className={styles.matchTop}>
                       <span className={styles.completedTag}><i /> ENCERRADA</span>
@@ -667,10 +690,10 @@ export default function LiveTrackerPage() {
                       <span>{match.leaderboardName ?? match.gameModeName ?? (mode === "1v1" ? "1x1" : "TG")} · Finalizada às {formatTime(match.finished)}</span>
                       {replayPlayer ? (
                         <a href={"https://aoe.ms/replay/?gameId=" + match.matchId + "&profileId=" + replayPlayer.profileId} target="_blank" rel="noreferrer">
-                          <Download size={14} /> BAIXAR REPLAY
+                          <Download size={14} /> BAIXAR REC
                         </a>
                       ) : (
-                        <span className={styles.replayUnavailable}>REC INDISPONÍVEL</span>
+                        <span className={styles.replayUnavailable}>LINK INDISPONÍVEL</span>
                       )}
                     </div>
                   </article>;
