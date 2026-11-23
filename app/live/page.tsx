@@ -227,7 +227,6 @@ export default function LiveTrackerPage() {
   const queueNotificationBaselineReadyRef = useRef(false);
   const queueNotificationTimersRef = useRef(new Map<string, number>());
   const loadedLeaderboardKeyRef = useRef("");
-  const liveMatchesRef = useRef<LiveMatch[]>([]);
   const [recentMatches, setRecentMatches] = useState<LiveMatch[]>([]);
   const [recentMatchesError, setRecentMatchesError] = useState("");
   const liveMatchesRef = useRef<LiveMatch[]>([]);
