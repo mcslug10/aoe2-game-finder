@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, Castle, LoaderCircle, MessageCircle, Send, ShieldCheck, X } from "lucide-react";
 import styles from "./live-chat.module.css";
 
@@ -28,7 +28,87 @@ export default function LiveChat() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
+  const positionRef = useRef<{ left: number; top: number } | null>(null);
+
+  const clampPosition = useCallback((left: number, top: number) => {
+    const rect = widgetRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? 390;
+    const height = rect?.height ?? 590;
+    return {
+      left: Math.min(Math.max(8, left), Math.max(8, window.innerWidth - width - 8)),
+      top: Math.min(Math.max(8, top), Math.max(8, window.innerHeight - height - 8)),
+    };
+  }, []);
+
+  const updatePosition = useCallback((next: { left: number; top: number }) => {
+    positionRef.current = next;
+    setPosition(next);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("aoe2-live-chat-position-v1");
+      if (stored) {
+        const parsed = JSON.parse(stored) as { left?: unknown; top?: unknown };
+        if (typeof parsed.left === "number" && typeof parsed.top === "number") {
+          updatePosition(clampPosition(parsed.left, parsed.top));
+        }
+      }
+    } catch {
+      // Ignore invalid or unavailable local storage and keep the default corner.
+    }
+
+    const onResize = () => {
+      const current = positionRef.current;
+      if (current) updatePosition(clampPosition(current.left, current.top));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [clampPosition, updatePosition]);
+
+  const handleDragStart = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button")) return;
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    };
+    updatePosition(clampPosition(rect.left, rect.top));
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const handleDragMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    updatePosition(clampPosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY));
+  };
+
+  const handleDragEnd = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    const finalPosition = positionRef.current;
+    if (finalPosition) {
+      try {
+        window.localStorage.setItem("aoe2-live-chat-position-v1", JSON.stringify(finalPosition));
+      } catch {
+        // The chat remains movable even when the browser blocks local storage.
+      }
+    }
+  };
 
   const refreshMessages = useCallback(async () => {
     const response = await fetch("/api/messages", { cache: "no-store" });
@@ -178,10 +258,17 @@ export default function LiveChat() {
   };
 
   return (
-    <div className={styles.widget}>
+    <div ref={widgetRef} className={styles.widget} style={position ? { left: position.left, top: position.top, right: "auto", bottom: "auto" } : undefined}>
       {open ? (
         <section className={styles.window} aria-label="Chat da comunidade">
-          <header className={styles.header}>
+          <header
+            className={styles.header + (isDragging ? " " + styles.dragging : "")}
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
+            title="Arraste para mover o chat"
+          >
             <div className={styles.headerMark}><Castle size={20} /></div>
             <div className={styles.headerText}>
               <strong>CHAT DA COMUNIDADE</strong>

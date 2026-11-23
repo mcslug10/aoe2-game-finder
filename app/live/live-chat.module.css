@@ -61,3 +61,14 @@
   box-shadow:inset 0 1px rgba(255,255,255,.6),0 2px 4px rgba(0,0,0,.12);
 }
 .nicknameGate .cancelNickname:hover{filter:brightness(1.04)}
+
+
+/* Drag the chat by its title bar; the close button remains a normal click target. */
+.header{
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+}
+.header.dragging{cursor:grabbing}
+.header .closeButton{cursor:pointer;touch-action:manipulation}
+.widget{will-change:left,top}
