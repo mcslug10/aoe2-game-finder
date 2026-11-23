@@ -39,13 +39,48 @@ export async function POST(req: NextRequest) {
     const existingId = verifyPlayer(existingToken);
     const db = getAdminSupabase();
     if (existingId) {
-      const { data } = await db.from("players").select("id,nickname").eq("id", existingId).maybeSingle();
-      if (data) {
-        const { data: updated } = await db.from("players").update({ nickname, last_seen: new Date().toISOString() }).eq("id", existingId).select("id,nickname").single();
-        if (updated) return NextResponse.json(updated);
+      const { data: existingPlayer, error: existingError } = await db
+        .from("players")
+        .select("id,nickname")
+        .eq("id", existingId)
+        .maybeSingle();
+      if (existingError) throw existingError;
+
+      if (existingPlayer) {
+        const { data: duplicate, error: duplicateError } = await db
+          .from("players")
+          .select("id")
+          .ilike("nickname", nickname)
+          .neq("id", existingId)
+          .limit(1)
+          .maybeSingle();
+        if (duplicateError) throw duplicateError;
+        if (duplicate) {
+          return NextResponse.json(
+            { error: "Esse nickname já está em uso. Escolha outro." },
+            { status: 409 },
+          );
+        }
+
+        const { data: updated, error: updateError } = await db
+          .from("players")
+          .update({ nickname, language: body.language === "en" ? "en" : "pt", last_seen: new Date().toISOString() })
+          .eq("id", existingId)
+          .select("id,nickname")
+          .single();
+        if (updateError) throw updateError;
+
+        return NextResponse.json(updated, { headers: { "Cache-Control": "no-store" } });
       }
     }
-    const { data: duplicate } = await db.from("players").select("id").ilike("nickname", nickname).limit(1).maybeSingle();
+
+    const { data: duplicate, error: duplicateError } = await db
+      .from("players")
+      .select("id")
+      .ilike("nickname", nickname)
+      .limit(1)
+      .maybeSingle();
+    if (duplicateError) throw duplicateError;
     if (duplicate) return NextResponse.json({ error: "Esse nickname já está em uso. Escolha outro." }, { status: 409 });
     const id = randomUUID();
     const { data, error } = await db.from("players").insert({ id, nickname, language: body.language === "en" ? "en" : "pt", last_seen: new Date().toISOString() }).select("id,nickname").single();
