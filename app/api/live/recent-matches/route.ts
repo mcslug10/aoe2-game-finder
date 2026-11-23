@@ -8,11 +8,17 @@ type MatchPlayer = {
   name?: string;
   country?: string;
   rating?: number;
+  ratingDiff?: number;
   replay?: boolean;
-  won?: boolean;
+  won?: boolean | null;
   civName?: string;
   civ?: string;
   team?: number;
+};
+
+type MatchTeam = {
+  teamId?: number;
+  players?: MatchPlayer[];
 };
 
 type CompanionMatch = {
@@ -26,8 +32,20 @@ type CompanionMatch = {
   mapName?: string;
   map?: string;
   players?: MatchPlayer[];
-  teams?: Array<{ teamId?: number; players?: MatchPlayer[] }>;
+  teams?: MatchTeam[];
 };
+
+function playersFromMatch(match: CompanionMatch): MatchPlayer[] {
+  if (Array.isArray(match.teams) && match.teams.length) {
+    return match.teams.flatMap((team) =>
+      (team.players ?? []).map((player) => ({
+        ...player,
+        team: typeof player.team === "number" ? player.team : team.teamId,
+      })),
+    );
+  }
+  return Array.isArray(match.players) ? match.players : [];
+}
 
 function matchesMode(match: CompanionMatch, mode: "1v1" | "TG", players: MatchPlayer[]) {
   const label = [
@@ -48,6 +66,82 @@ function matchesMode(match: CompanionMatch, mode: "1v1" | "TG", players: MatchPl
   return players.length > 2;
 }
 
+function resolvePlayerResults(players: MatchPlayer[]) {
+  const teamResults = new Map<number, boolean>();
+  const playersByTeam = new Map<number, MatchPlayer[]>();
+
+  for (const player of players) {
+    if (typeof player.team !== "number") continue;
+    const team = playersByTeam.get(player.team) ?? [];
+    team.push(player);
+    playersByTeam.set(player.team, team);
+  }
+
+  // First trust the explicit outcome in the per-player match record.
+  for (const [teamId, teamPlayers] of playersByTeam) {
+    const explicit = [...new Set(
+      teamPlayers
+        .map((player) => player.won)
+        .filter((won): won is boolean => typeof won === "boolean"),
+    )];
+    if (explicit.length === 1) teamResults.set(teamId, explicit[0]);
+  }
+
+  // Some summary records omit the outcome, but keep the signed rating change.
+  // Use it only when every opposing team has a clear, opposite sign.
+  if (playersByTeam.size >= 2) {
+    const teamSigns = Array.from(playersByTeam.entries()).map(([teamId, teamPlayers]) => {
+      const changes = teamPlayers
+        .map((player) => Number(player.ratingDiff))
+        .filter((value) => Number.isFinite(value) && value !== 0);
+      const mean = changes.length ? changes.reduce((sum, value) => sum + value, 0) / changes.length : 0;
+      return { teamId, sign: mean > 0 ? 1 : mean < 0 ? -1 : 0 };
+    });
+    const signs = new Set(teamSigns.map((item) => item.sign));
+    if (teamSigns.every((item) => item.sign !== 0) && signs.has(1) && signs.has(-1)) {
+      for (const item of teamSigns) {
+        if (!teamResults.has(item.teamId)) teamResults.set(item.teamId, item.sign > 0);
+      }
+    }
+  }
+
+  return players.map((player) => {
+    if (typeof player.won === "boolean") return player;
+    if (typeof player.team === "number" && teamResults.has(player.team)) {
+      return { ...player, won: teamResults.get(player.team) };
+    }
+    if (typeof player.ratingDiff === "number" && player.ratingDiff !== 0 && playersByTeam.size <= 1) {
+      return { ...player, won: player.ratingDiff > 0 };
+    }
+    return { ...player, won: null };
+  });
+}
+
+async function fetchMatchDetails(matchId: number): Promise<CompanionMatch | null> {
+  const url = new URL("https://data.aoe2companion.com/api/matches/" + matchId);
+  url.searchParams.set("use_enums", "true");
+  url.searchParams.set("language", "en");
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AOE2-Game-Finder/1.0 (https://aoe2-game-finder.vercel.app)",
+      },
+      next: { revalidate: 45 },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) {
+      console.warn("AoE2 Companion match detail unavailable", { matchId, status: response.status });
+      return null;
+    }
+    return await response.json() as CompanionMatch;
+  } catch (error) {
+    console.warn("AoE2 Companion match detail request failed", { matchId, error });
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { profileIds?: unknown; mode?: unknown };
@@ -62,10 +156,10 @@ export async function POST(request: NextRequest) {
         .filter((value) => Number.isSafeInteger(value) && value > 0),
     )).slice(0, 15000);
 
-    if (!profileIds.length) return NextResponse.json({ matches: [], checkedPlayers: 0, windowMinutes: 30 });
+    if (!profileIds.length) {
+      return NextResponse.json({ matches: [], checkedPlayers: 0, windowMinutes: 30 });
+    }
 
-    // Split large worldwide watchlists into manageable query strings. Two concurrent
-    // requests keep the upstream match-history rate manageable.
     const profileChunks: number[][] = [];
     for (let index = 0; index < profileIds.length; index += 800) {
       profileChunks.push(profileIds.slice(index, index + 800));
@@ -109,14 +203,14 @@ export async function POST(request: NextRequest) {
     const monitored = new Set(profileIds);
     const cutoff = Date.now() - 30 * 60 * 1000;
     const now = Date.now();
+    const uniqueFetchedMatches = Array.from(new Map(
+      fetchedMatches.filter((match) => Number(match.matchId) > 0)
+        .map((match) => [Number(match.matchId), match]),
+    ).values());
 
-    const uniqueFetchedMatches = Array.from(new Map(fetchedMatches.filter((match) => Number(match.matchId) > 0).map((match) => [Number(match.matchId), match])).values());
-    const matches = uniqueFetchedMatches
-      .filter((match) => Number.isSafeInteger(Number(match.matchId)) && Number(match.matchId) > 0)
+    const candidates = uniqueFetchedMatches
       .map((match) => {
-        const players = Array.isArray(match.players)
-          ? match.players
-          : (match.teams ?? []).flatMap((team) => team.players ?? []);
+        const players = playersFromMatch(match);
         const finishedAt = match.finished ? new Date(String(match.finished)).getTime() : NaN;
         return { match, players, finishedAt };
       })
@@ -128,31 +222,48 @@ export async function POST(request: NextRequest) {
         matchesMode(match, mode, players),
       )
       .sort((a, b) => b.finishedAt - a.finishedAt)
-      .slice(0, 60)
-      .map(({ match, players }) => ({
-        matchId: Number(match.matchId),
-        started: match.started ? new Date(String(match.started)).toISOString() : null,
-        finished: match.finished ? new Date(String(match.finished)).toISOString() : null,
-        leaderboardId: match.leaderboardId ?? null,
-        leaderboardName: match.leaderboardName ?? null,
-        gameModeName: match.gameModeName ?? null,
-        gameMode: match.gameMode ?? null,
-        mapName: match.mapName ?? match.map ?? null,
-        players: players.map((player) => ({
-          profileId: Number(player.profileId),
-          name: String(player.name ?? "Jogador"),
-          country: String(player.country ?? "").toUpperCase(),
-          rating: typeof player.rating === "number" ? player.rating : null,
-          replay: typeof player.replay === "boolean" ? player.replay : null,
-          won: typeof player.won === "boolean" ? player.won : null,
-          civName: player.civName ?? null,
-          civ: player.civ ?? null,
-          team: typeof player.team === "number" ? player.team : null,
-        })),
-      }));
+      .slice(0, 60);
+
+    const detailedMatches: Array<{ match: CompanionMatch; players: MatchPlayer[] }> = [];
+    for (let start = 0; start < candidates.length; start += 5) {
+      const batch = candidates.slice(start, start + 5);
+      const details = await Promise.all(batch.map(({ match }) => fetchMatchDetails(Number(match.matchId))));
+      batch.forEach((candidate, index) => {
+        const detail = details[index];
+        const source = detail && playersFromMatch(detail).length ? detail : candidate.match;
+        const players = resolvePlayerResults(playersFromMatch(source));
+        detailedMatches.push({
+          match: { ...candidate.match, ...(detail ?? {}) },
+          players,
+        });
+      });
+    }
+
+    const matches = detailedMatches.map(({ match, players }) => ({
+      matchId: Number(match.matchId),
+      started: match.started ? new Date(String(match.started)).toISOString() : null,
+      finished: match.finished ? new Date(String(match.finished)).toISOString() : null,
+      leaderboardId: match.leaderboardId ?? null,
+      leaderboardName: match.leaderboardName ?? null,
+      gameModeName: match.gameModeName ?? null,
+      gameMode: match.gameMode ?? null,
+      mapName: match.mapName ?? match.map ?? null,
+      players: players.map((player) => ({
+        profileId: Number(player.profileId),
+        name: String(player.name ?? "Jogador"),
+        country: String(player.country ?? "").toUpperCase(),
+        rating: typeof player.rating === "number" ? player.rating : null,
+        ratingDiff: typeof player.ratingDiff === "number" ? player.ratingDiff : null,
+        replay: typeof player.replay === "boolean" ? player.replay : null,
+        won: typeof player.won === "boolean" ? player.won : null,
+        team: typeof player.team === "number" ? player.team : null,
+        civName: player.civName ?? null,
+        civ: player.civ ?? null,
+      })),
+    }));
 
     return NextResponse.json(
-      { matches, checkedPlayers: profileIds.length, truncated: Array.isArray(body.profileIds) && body.profileIds.length > 15000, windowMinutes: 30 },
+      { matches, checkedPlayers: profileIds.length, windowMinutes: 30, resultDetailsFetched: detailedMatches.length },
       { headers: { "Cache-Control": "public, s-maxage=45, stale-while-revalidate=60" } },
     );
   } catch (error) {

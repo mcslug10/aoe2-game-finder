@@ -34,6 +34,8 @@ const LEADERBOARDS = {
 
 const TRACKED_TG_BRAZIL_MIN_RATING = 1200;
 const TRACKED_TG_WORLD_MIN_RATING = 1300;
+const BRAZIL_800_PLUS_MIN_RATING = 800;
+const BRAZIL_800_PLUS_MAX_RATING = 1400;
 const TRACKER_PAGE_SIZE = 100;
 const TRACKER_FETCH_CONCURRENCY = 4;
 
@@ -69,7 +71,7 @@ function validPlayers(players?: CompanionPlayer[]) {
 
 async function fetchLeaderboardPage(
   leaderboardId: string,
-  region: "WORLD" | "BR",
+  region: "WORLD" | "BR" | "BR_800_1400",
   page: number,
   perPage: number,
 ): Promise<CompanionLeaderboardPayload> {
@@ -77,7 +79,7 @@ async function fetchLeaderboardPage(
   url.searchParams.set("page", String(page));
   url.searchParams.set("per_page", String(perPage));
   url.searchParams.set("language", "en");
-  if (region === "BR") url.searchParams.set("country", "BR");
+  if (region !== "WORLD") url.searchParams.set("country", "BR");
 
   let response: Response;
   try {
@@ -103,44 +105,46 @@ async function fetchLeaderboardPage(
   return await response.json() as CompanionLeaderboardPayload;
 }
 
-async function fetchExpandedTeamPlayers(
+async function fetchPlayersInRatingRange(
   firstPage: CompanionLeaderboardPayload,
-  region: "WORLD" | "BR",
+  leaderboardId: string,
+  region: "WORLD" | "BR" | "BR_800_1400",
   minimumRating: number,
+  maximumRating?: number,
 ) {
   const total = Math.max(0, Number(firstPage.total ?? validPlayers(firstPage.players).length));
   const perPage = Math.max(1, Number(firstPage.perPage ?? TRACKER_PAGE_SIZE));
   const pageCount = Math.ceil(total / perPage);
   const rawPlayers: CompanionPlayer[] = [...validPlayers(firstPage.players)];
 
-  // AoE II Companion's leaderboard is ordered by current rating/rank. For the
-  // worldwide watchlist, stop after the first page that crosses below 1300 ELO.
-  // This keeps the all-world scan bounded instead of paging through every ranked account.
+  // Companion leaderboards are sorted from highest to lowest current rating.
+  // Read pages in small parallel batches and stop once the lower ELO boundary is crossed.
   for (let batchStart = 2; batchStart <= pageCount; batchStart += TRACKER_FETCH_CONCURRENCY) {
     const pageNumbers = Array.from(
       { length: Math.min(TRACKER_FETCH_CONCURRENCY, pageCount - batchStart + 1) },
       (_, index) => batchStart + index,
     );
     const pages = await Promise.all(
-      pageNumbers.map((page) => fetchLeaderboardPage("rm_team", region, page, perPage)),
+      pageNumbers.map((page) => fetchLeaderboardPage(leaderboardId, region, page, perPage)),
     );
 
-    let thresholdReached = false;
+    let minimumReached = false;
     for (const payload of pages) {
       const pagePlayers = validPlayers(payload.players);
       rawPlayers.push(...pagePlayers);
       if (pagePlayers.some((player) => Number(player.rating ?? 0) < minimumRating)) {
-        thresholdReached = true;
+        minimumReached = true;
       }
     }
-    if (thresholdReached) break;
+    if (minimumReached) break;
   }
 
   const distinct = new Map<number, ReturnType<typeof normalizePlayer>>();
   for (const player of rawPlayers) {
     const normalized = normalizePlayer(player);
     if (normalized.rating < minimumRating) continue;
-    if (region === "BR" && normalized.country && normalized.country !== "BR") continue;
+    if (typeof maximumRating === "number" && normalized.rating > maximumRating) continue;
+    if (region !== "WORLD" && normalized.country && normalized.country !== "BR") continue;
     distinct.set(normalized.profileId, normalized);
   }
 
@@ -156,7 +160,7 @@ export async function GET(request: NextRequest) {
   if (modeParam !== "1v1" && modeParam !== "TG") {
     return NextResponse.json({ error: "Modalidade inválida." }, { status: 400 });
   }
-  if (regionParam !== "WORLD" && regionParam !== "BR") {
+  if (regionParam !== "WORLD" && regionParam !== "BR" && regionParam !== "BR_800_1400") {
     return NextResponse.json({ error: "Região inválida." }, { status: 400 });
   }
 
@@ -169,16 +173,32 @@ export async function GET(request: NextRequest) {
       1,
       TRACKER_PAGE_SIZE,
     );
-    const players = validPlayers(firstPage.players).map(normalizePlayer);
-    const total = Number(firstPage.total ?? players.length);
+    const leaderboardPlayers = validPlayers(firstPage.players).map(normalizePlayer);
+    const leaderboardTotal = Number(firstPage.total ?? leaderboardPlayers.length);
 
+    const brazilRatingBand = regionParam === "BR_800_1400";
     const expandedTeamMode = modeParam === "TG";
-    const trackingMinRating = regionParam === "BR"
-      ? TRACKED_TG_BRAZIL_MIN_RATING
-      : TRACKED_TG_WORLD_MIN_RATING;
-    const trackedPlayers = expandedTeamMode
-      ? await fetchExpandedTeamPlayers(firstPage, regionParam, trackingMinRating)
+    const trackingMinRating = brazilRatingBand
+      ? BRAZIL_800_PLUS_MIN_RATING
+      : regionParam === "BR"
+        ? TRACKED_TG_BRAZIL_MIN_RATING
+        : TRACKED_TG_WORLD_MIN_RATING;
+    const trackingMaxRating = brazilRatingBand ? BRAZIL_800_PLUS_MAX_RATING : null;
+    const needsExpandedPlayers = expandedTeamMode || brazilRatingBand;
+    const trackedPlayers = needsExpandedPlayers
+      ? await fetchPlayersInRatingRange(
+          firstPage,
+          leaderboardId,
+          regionParam,
+          trackingMinRating,
+          trackingMaxRating ?? undefined,
+        )
       : [];
+
+    // Brasil 800+ lists the best 100 players inside the ELO band, while all eligible
+    // profiles stay in the watchlist for queueing, live matches and recent history.
+    const players = brazilRatingBand ? trackedPlayers.slice(0, 100) : leaderboardPlayers;
+    const total = brazilRatingBand ? trackedPlayers.length : leaderboardTotal;
 
     return NextResponse.json(
       {
@@ -186,7 +206,8 @@ export async function GET(request: NextRequest) {
         total,
         trackedPlayers,
         trackedPlayersTotal: trackedPlayers.length,
-        trackingMinRating: expandedTeamMode ? trackingMinRating : null,
+        trackingMinRating: needsExpandedPlayers ? trackingMinRating : null,
+        trackingMaxRating,
         mode: modeParam,
         region: regionParam,
         leaderboardId,
