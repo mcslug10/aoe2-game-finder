@@ -24,6 +24,7 @@ export default function LiveChat() {
   const [playerId, setPlayerId] = useState("");
   const [sessionChecked, setSessionChecked] = useState(false);
   const [needsNickname, setNeedsNickname] = useState(false);
+  const [isChangingNickname, setIsChangingNickname] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -138,12 +139,37 @@ export default function LiveChat() {
       setSavedNickname(visitor.nickname);
       setNickname(visitor.nickname);
       setPlayerId(visitor.id);
-      await postMessage(draft.trim());
+
+      if (isChangingNickname) {
+        // The server updates the existing player row, so previous messages
+        // are automatically displayed with the new nickname too.
+        setIsChangingNickname(false);
+        setNeedsNickname(false);
+        setError("");
+        try { await refreshMessages(); } catch { /* The next polling cycle will refresh the list. */ }
+      } else {
+        setNeedsNickname(false);
+        if (draft.trim()) await postMessage(draft.trim());
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível entrar no chat.");
     } finally {
       setSending(false);
     }
+  };
+
+  const beginNicknameChange = () => {
+    setNickname(savedNickname);
+    setIsChangingNickname(true);
+    setNeedsNickname(true);
+    setError("");
+  };
+
+  const cancelNicknameChange = () => {
+    setNickname(savedNickname);
+    setIsChangingNickname(false);
+    setNeedsNickname(false);
+    setError("");
   };
 
   const onMessageSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -191,17 +217,37 @@ export default function LiveChat() {
           {error ? <div className={styles.error} role="status"><AlertCircle size={14} /> {error}</div> : null}
           {needsNickname ? (
             <form className={styles.nicknameGate} onSubmit={handleNicknameSubmit}>
-              <label htmlFor="live-chat-nickname">Escolha seu nick para conversar</label>
+              <label htmlFor="live-chat-nickname">
+                {isChangingNickname ? "Escolha seu novo nick" : "Escolha seu nick para conversar"}
+              </label>
               <input id="live-chat-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ex.: LordArabia" minLength={3} maxLength={24} autoComplete="nickname" required autoFocus />
-              <p>Seu nick ficará salvo neste navegador por 30 dias.</p>
-              <button type="submit" disabled={sending || nickname.trim().length < 3}>
-                {sending ? <LoaderCircle size={15} className={styles.spin} /> : <ShieldCheck size={15} />}
-                SALVAR NICK E ENVIAR
-              </button>
+              <p>
+                {isChangingNickname
+                  ? "Seu novo nick será usado também nas mensagens anteriores deste navegador."
+                  : "Seu nick ficará salvo neste navegador por 30 dias."}
+              </p>
+              <div className={styles.nicknameActions}>
+                <button type="submit" disabled={sending || nickname.trim().length < 3}>
+                  {sending ? <LoaderCircle size={15} className={styles.spin} /> : <ShieldCheck size={15} />}
+                  {isChangingNickname ? "SALVAR NOVO NICK" : "SALVAR NICK E ENVIAR"}
+                </button>
+                {isChangingNickname ? (
+                  <button type="button" className={styles.cancelNickname} onClick={cancelNicknameChange} disabled={sending}>
+                    CANCELAR
+                  </button>
+                ) : null}
+              </div>
             </form>
           ) : (
             <form className={styles.composer} onSubmit={onMessageSubmit}>
-              {savedNickname ? <span className={styles.savedAs}>Você está conversando como <b>{savedNickname}</b></span> : null}
+              {savedNickname ? (
+                <div className={styles.savedAs}>
+                  <span>Você está conversando como <b>{savedNickname}</b></span>
+                  <button type="button" className={styles.changeNicknameButton} onClick={beginNicknameChange} disabled={sending}>
+                    TROCAR NICK
+                  </button>
+                </div>
+              ) : null}
               <div className={styles.composeRow}>
                 <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={sessionChecked ? "Escreva uma mensagem..." : "Conectando ao chat..."} maxLength={240} disabled={!sessionChecked || sending} aria-label="Mensagem" />
                 <button type="submit" disabled={!draft.trim() || !sessionChecked || sending} aria-label="Enviar mensagem">

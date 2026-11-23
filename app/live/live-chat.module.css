@@ -30,3 +30,34 @@
 .composeRow{display:flex;gap:7px}.composeRow button{display:grid;place-items:center;width:43px;flex:none;color:#fff0d5;background:linear-gradient(180deg,#a52227,#710c12);border:1px solid #b78a55;box-shadow:inset 0 1px rgba(255,255,255,.2),inset 0 -2px #4a070a,0 2px 5px #0003;cursor:pointer}
 .composer>small{color:#866a4b;font-size:9px}.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:560px){.widget{right:10px;bottom:10px;gap:8px}.launcher{min-height:48px;padding:0 14px;font-size:10px}.window{width:min(360px,calc(100vw - 20px));height:min(520px,calc(100dvh - 75px));min-height:340px}}
+
+
+.savedAs{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.savedAs span{color:#826548;font-size:9px}
+.savedAs span b{color:#7d1c20}
+.changeNicknameButton{
+  padding:4px 7px;
+  color:#7d1c20;
+  background:rgba(255,247,226,.48);
+  border:1px solid rgba(145,99,56,.55);
+  font:800 9px 'Barlow Condensed',sans-serif;
+  letter-spacing:.55px;
+  cursor:pointer;
+}
+.changeNicknameButton:hover{background:rgba(255,255,255,.7);border-color:#8a2628}
+.changeNicknameButton:disabled{opacity:.5;cursor:wait}
+.nicknameActions{display:flex;gap:8px}
+.nicknameActions button{flex:1}
+.nicknameGate .cancelNickname{
+  color:#694b32;
+  background:linear-gradient(180deg,#f4e5c8,#cfb48c);
+  border-color:#a78357;
+  box-shadow:inset 0 1px rgba(255,255,255,.6),0 2px 4px rgba(0,0,0,.12);
+}
+.nicknameGate .cancelNickname:hover{filter:brightness(1.04)}
