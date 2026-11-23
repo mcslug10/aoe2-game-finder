@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
         const { data: updated, error: updateError } = await db
           .from("players")
-          .update({ nickname, last_seen: new Date().toISOString() })
+          .update({ nickname, language: body.language === "en" ? "en" : "pt", last_seen: new Date().toISOString() })
           .eq("id", existingId)
           .select("id,nickname")
           .single();

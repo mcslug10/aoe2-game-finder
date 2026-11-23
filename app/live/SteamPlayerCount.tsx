@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import styles from "./steam-player-count.module.css";
+import { liveText, type LiveLocale } from "./translations";
 
 type SteamCountResponse = {
   playerCount?: number;
@@ -10,14 +11,15 @@ type SteamCountResponse = {
   error?: string;
 };
 
-function formatClock(value: string | null) {
+function formatClock(value: string | null, locale: LiveLocale) {
   if (!value) return "";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "";
-  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(locale === "pt" ? "pt-BR" : "en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function SteamPlayerCount() {
+export default function SteamPlayerCount({ locale }: { locale: LiveLocale }) {
+  const t = liveText[locale];
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function SteamPlayerCount() {
         const response = await fetch("/api/steam/players", { cache: "no-store" });
         const data = await response.json() as SteamCountResponse;
         if (!response.ok || typeof data.playerCount !== "number" || !Number.isFinite(data.playerCount)) {
-          throw new Error(data.error ?? "Contagem indisponível");
+          throw new Error(data.error ?? t.steamUnavailable);
         }
         if (active) {
           setPlayerCount(data.playerCount);
@@ -59,8 +61,8 @@ export default function SteamPlayerCount() {
   }, []);
 
   const title = error && playerCount === null
-    ? "Não foi possível consultar os jogadores online da Steam"
-    : "Jogadores atualmente ativos na Steam. Atualização automática a cada 60 segundos.";
+    ? t.steamUnavailableTitle
+    : t.steamTitle;
 
   return (
     <a
@@ -70,14 +72,14 @@ export default function SteamPlayerCount() {
       rel="noreferrer"
       title={title}
       aria-label={playerCount === null
-        ? "Quantidade de jogadores online na Steam indisponível"
-        : playerCount.toLocaleString("pt-BR") + " jogadores online na Steam"}
+        ? t.steamCountUnavailable
+        : playerCount.toLocaleString(locale === "pt" ? "pt-BR" : "en-US") + " " + t.steamPlayersOnline}
     >
       <span className={styles.icon}><Users size={17} /></span>
       <span className={styles.copy}>
-        <span className={styles.label}>JOGADORES NA STEAM</span>
-        <strong>{playerCount === null ? (loading ? "..." : "—") : playerCount.toLocaleString("pt-BR")}</strong>
-        <small>{error ? "DADOS INDISPONÍVEIS" : updatedAt ? "ATUALIZADO ÀS " + formatClock(updatedAt) : "AO VIVO · 60S"}</small>
+        <span className={styles.label}>{t.steamLabel.toUpperCase()}</span>
+        <strong>{playerCount === null ? (loading ? "..." : "—") : playerCount.toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}</strong>
+        <small>{error ? t.steamUnavailable.toUpperCase() : updatedAt ? t.steamUpdatedAt.toUpperCase() + " " + formatClock(updatedAt, locale) : t.steamLive60s.toUpperCase()}</small>
       </span>
       <span className={error ? styles.statusOff : styles.statusOn} />
     </a>

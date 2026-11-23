@@ -3,19 +3,27 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, Castle, LoaderCircle, MessageCircle, Send, ShieldCheck, X } from "lucide-react";
 import styles from "./live-chat.module.css";
+import { liveText, type LiveLocale } from "./translations";
 
 type ChatMessage = { id: string; name: string; text: string; time: string; playerId?: string };
 type VisitorSession = { id: string; nickname: string };
 
-function apiMessage(payload: unknown, fallback: string) {
+function apiMessage(payload: unknown, fallback: string, locale: LiveLocale) {
   if (payload && typeof payload === "object" && "error" in payload) {
     const error = String((payload as { error?: unknown }).error ?? "");
-    if (error) return error;
+    if (error) {
+      if (locale === "en") {
+        if (error.includes("nickname já está em uso")) return liveText.en.nicknameInUse;
+        if (error.includes("nickname de 3 a 24")) return liveText.en.nicknameLength;
+      }
+      return error;
+    }
   }
   return fallback;
 }
 
-export default function LiveChat() {
+export default function LiveChat({ locale }: { locale: LiveLocale }) {
+  const t = liveText[locale];
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -113,7 +121,7 @@ export default function LiveChat() {
   const refreshMessages = useCallback(async () => {
     const response = await fetch("/api/messages", { cache: "no-store" });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(apiMessage(payload, "Não foi possível carregar o chat."));
+    if (!response.ok) throw new Error(apiMessage(payload, t.loadChatError, locale));
     setMessages(Array.isArray(payload.messages) ? payload.messages as ChatMessage[] : []);
   }, []);
 
@@ -146,7 +154,7 @@ export default function LiveChat() {
       const messageTask = refreshMessages()
         .then(() => { if (active) setError(""); })
         .catch(() => {
-          if (active) setError("O chat está temporariamente sem conexão. Tente novamente em instantes.");
+          if (active) setError(t.chatConnectionError);
         })
         .finally(() => { if (active) setLoadingMessages(false); });
 
@@ -156,7 +164,7 @@ export default function LiveChat() {
     void load();
     const timer = window.setInterval(() => {
       void refreshMessages().catch(() => {
-        if (active) setError("O chat está temporariamente sem conexão. Tente novamente em instantes.");
+        if (active) setError(t.chatConnectionError);
       });
     }, 5000);
 
@@ -177,7 +185,7 @@ export default function LiveChat() {
       body: JSON.stringify({ message }),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(apiMessage(payload, "Não foi possível enviar a mensagem."));
+    if (!response.ok) throw new Error(apiMessage(payload, t.sendMessageError, locale));
     setDraft("");
     setNeedsNickname(false);
     setError("");
@@ -195,7 +203,7 @@ export default function LiveChat() {
     try {
       await postMessage(message);
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Não foi possível enviar a mensagem.");
+      setError(sendError instanceof Error ? sendError.message : t.sendMessageError);
     } finally {
       setSending(false);
     }
@@ -211,10 +219,10 @@ export default function LiveChat() {
       const response = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: cleanNickname, language: "pt" }),
+        body: JSON.stringify({ nickname: cleanNickname, language: locale }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(apiMessage(payload, "Não foi possível salvar seu nick."));
+      if (!response.ok) throw new Error(apiMessage(payload, t.saveNicknameError, locale));
       const visitor = payload as VisitorSession;
       setSavedNickname(visitor.nickname);
       setNickname(visitor.nickname);
@@ -232,7 +240,7 @@ export default function LiveChat() {
         if (draft.trim()) await postMessage(draft.trim());
       }
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Não foi possível entrar no chat.");
+      setError(saveError instanceof Error ? saveError.message : t.enterChatError);
     } finally {
       setSending(false);
     }
@@ -260,36 +268,36 @@ export default function LiveChat() {
   return (
     <div ref={widgetRef} className={styles.widget} style={position ? { left: position.left, top: position.top, right: "auto", bottom: "auto" } : undefined}>
       {open ? (
-        <section className={styles.window} aria-label="Chat da comunidade">
+        <section className={styles.window} aria-label={t.communityChat}>
           <header
             className={styles.header + (isDragging ? " " + styles.dragging : "")}
             onPointerDown={handleDragStart}
             onPointerMove={handleDragMove}
             onPointerUp={handleDragEnd}
             onPointerCancel={handleDragEnd}
-            title="Arraste para mover o chat"
+            title={t.dragChat}
           >
             <div className={styles.headerMark}><Castle size={20} /></div>
             <div className={styles.headerText}>
-              <strong>CHAT DA COMUNIDADE</strong>
-              <span><i /> CONVERSE COM OUTROS JOGADORES</span>
+              <strong>{t.communityChat.toUpperCase()}</strong>
+              <span><i /> {t.chatSubtitle.toUpperCase()}</span>
             </div>
-            <button type="button" className={styles.closeButton} onClick={() => setOpen(false)} aria-label="Fechar chat">
+            <button type="button" className={styles.closeButton} onClick={() => setOpen(false)} aria-label={t.chatClose}>
               <X size={18} />
             </button>
           </header>
           <div className={styles.subheader}>
-            <span><MessageCircle size={14} /> CHAT GLOBAL DO GAME FINDER</span>
-            {savedNickname ? <b>{savedNickname}</b> : <small>VISITANTE</small>}
+            <span><MessageCircle size={14} /> {t.globalChat.toUpperCase()}</span>
+            {savedNickname ? <b>{savedNickname}</b> : <small>{t.visitor.toUpperCase()}</small>}
           </div>
           <div className={styles.messages} ref={listRef} aria-live="polite">
             {loadingMessages && messages.length === 0 ? (
-              <div className={styles.loading}><LoaderCircle size={18} /> Carregando conversa...</div>
+              <div className={styles.loading}><LoaderCircle size={18} /> {t.loadingChat}</div>
             ) : messages.length === 0 ? (
               <div className={styles.empty}>
                 <MessageCircle size={26} />
-                <strong>O salão está vazio</strong>
-                <span>Seja o primeiro a mandar um salve para a comunidade.</span>
+                <strong>{t.chatEmpty}</strong>
+                <span>{t.chatEmptyHint}</span>
               </div>
             ) : messages.map((message) => (
               <article className={styles.message + " " + (message.playerId && playerId && message.playerId === playerId ? styles.mine : "")} key={message.id}>
@@ -305,18 +313,18 @@ export default function LiveChat() {
           {needsNickname ? (
             <form className={styles.nicknameGate} onSubmit={handleNicknameSubmit}>
               <label htmlFor="live-chat-nickname">
-                {isChangingNickname ? "Escolha seu novo nick" : "Escolha seu nick para conversar"}
+                {isChangingNickname ? t.chooseNewNickname : t.chooseNickname}
               </label>
               <input id="live-chat-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="Ex.: LordArabia" minLength={3} maxLength={24} autoComplete="nickname" required autoFocus />
               <p>
                 {isChangingNickname
-                  ? "Seu novo nick será usado também nas mensagens anteriores deste navegador."
-                  : "Seu nick ficará salvo neste navegador por 30 dias."}
+                  ? t.nicknameChangedHint
+                  : t.nicknameHint}
               </p>
               <div className={styles.nicknameActions}>
                 <button type="submit" disabled={sending || nickname.trim().length < 3}>
                   {sending ? <LoaderCircle size={15} className={styles.spin} /> : <ShieldCheck size={15} />}
-                  {isChangingNickname ? "SALVAR NOVO NICK" : "SALVAR NICK E ENVIAR"}
+                  {isChangingNickname ? t.saveNewNickname.toUpperCase() : t.saveNicknameAndSend.toUpperCase()}
                 </button>
                 {isChangingNickname ? (
                   <button type="button" className={styles.cancelNickname} onClick={cancelNicknameChange} disabled={sending}>
@@ -329,26 +337,26 @@ export default function LiveChat() {
             <form className={styles.composer} onSubmit={onMessageSubmit}>
               {savedNickname ? (
                 <div className={styles.savedAs}>
-                  <span>Você está conversando como <b>{savedNickname}</b></span>
+                  <span>{t.chattingAs} <b>{savedNickname}</b></span>
                   <button type="button" className={styles.changeNicknameButton} onClick={beginNicknameChange} disabled={sending}>
                     TROCAR NICK
                   </button>
                 </div>
               ) : null}
               <div className={styles.composeRow}>
-                <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={sessionChecked ? "Escreva uma mensagem..." : "Conectando ao chat..."} maxLength={240} disabled={!sessionChecked || sending} aria-label="Mensagem" />
-                <button type="submit" disabled={!draft.trim() || !sessionChecked || sending} aria-label="Enviar mensagem">
+                <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={sessionChecked ? t.messagePlaceholder : t.connectingChat} maxLength={240} disabled={!sessionChecked || sending} aria-label={t.messagePlaceholder} />
+                <button type="submit" disabled={!draft.trim() || !sessionChecked || sending} aria-label={t.sendMessage}>
                   {sending ? <LoaderCircle size={18} className={styles.spin} /> : <Send size={17} />}
                 </button>
               </div>
-              <small>{savedNickname ? "Até 240 caracteres · Respeite os outros jogadores" : "Ao enviar sua primeira mensagem, você escolhe um nick."}</small>
+              <small>{savedNickname ? t.messageGuideline : t.firstMessageHint}</small>
             </form>
           )}
         </section>
       ) : null}
-      <button type="button" className={styles.launcher + (open ? " " + styles.launcherOpen : "")} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "Fechar chat da comunidade" : "Abrir chat da comunidade"}>
+      <button type="button" className={styles.launcher + (open ? " " + styles.launcherOpen : "")} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? t.chatClose : t.openCommunityChat}>
         {open ? <X size={19} /> : <MessageCircle size={20} />}
-        <span>{open ? "FECHAR CHAT" : "CHAT DA COMUNIDADE"}</span>
+        <span>{open ? t.chatClose.toUpperCase() : t.communityChat.toUpperCase()}</span>
         {!open ? <i /> : null}
       </button>
     </div>
