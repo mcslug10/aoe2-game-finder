@@ -241,7 +241,7 @@ export default function LiveTrackerPage() {
     if (timer !== undefined) window.clearTimeout(timer);
     queueNotificationTimersRef.current.delete(id);
     setQueueNotifications((current) => current.filter((notification) => notification.id !== id));
-  }, [loading, publishQueueNotifications]);
+  }, []);
 
   const publishQueueNotifications = useCallback((notifications: QueueNotification[]) => {
     if (!notifications.length) return;
@@ -486,7 +486,7 @@ export default function LiveTrackerPage() {
       queueSocket?.close();
       matchSocket?.close();
     };
-  }, []);
+  }, [loading, publishQueueNotifications]);
 
   const hasExpandedTeamTracking = mode === "TG";
   const trackingMinRating = region === "BR" ? 1200 : 1300;
