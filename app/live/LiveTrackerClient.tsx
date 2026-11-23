@@ -675,7 +675,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel}><Swords size={14} /> {t.gameMode}</span>
           <div className={styles.segmented}>
-            <button type="button" className={mode === "1v1" ? styles.selected : ""} onClick={() => setMode("1v1")}>1x1 · Random Map</button>
+            <button type="button" className={mode === "1v1" ? styles.selected : ""} onClick={() => setMode("1v1")}>{locale === "pt" ? "1x1 · Mapa Aleatório" : "1v1 · Random Map"}</button>
             <button type="button" className={mode === "TG" ? styles.selected : ""} onClick={() => setMode("TG")}>{locale === "pt" ? "TG · Jogo em Equipe" : "TG · Team Game"}</button>
           </div>
         </div>
@@ -688,7 +688,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
       <section className={styles.metrics}>
         <article className={styles.metricCard}>
           <div className={styles.metricIcon}><Trophy size={18} /></div>
-          <div><span>{t.rankedPlayers.toUpperCase()}</span><strong>{loading ? "—" : totalPlayers.toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}</strong><small>{regionLabel(region, locale)} · {mode}</small></div>
+          <div><span>{t.rankedPlayers.toUpperCase()}</span><strong>{loading ? "—" : totalPlayers.toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}</strong><small>{regionLabel(region, locale)} · {locale === "en" && mode === "1v1" ? "1v1" : mode}</small></div>
         </article>
         <article className={styles.metricCard}>
           <div className={styles.metricIcon}><Radio size={18} /></div>
@@ -744,7 +744,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                         <td>
                           <div className={styles.playerCell}>
                             {player.avatarSmallUrl ? <img src={player.avatarSmallUrl} alt="" /> : <span className={styles.avatarFallback}>{player.name.slice(0, 1).toUpperCase()}</span>}
-                            <div><strong>{flagEmoji(player.country)} {player.name}</strong><small>Perfil #{player.profileId}</small></div>
+                            <div><strong>{flagEmoji(player.country)} {player.name}</strong><small>{t.profile} #{player.profileId}</small></div>
                           </div>
                         </td>
                         <td><strong className={styles.rating}>{player.rating.toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}</strong><small className={styles.peak}>{t.peak} {player.maxRating.toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}</small></td>
@@ -792,10 +792,10 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                       const currentRating = monitoredPlayerRatings.get(Number(player.profileId));
                       return <div className={styles.queuePlayer} key={player.profileId}>
                         <span>{flagEmoji(player.country)}</span>
-                        <strong>{player.name ?? "Jogador"}</strong>
+                        <strong>{player.name ?? t.unknownPlayer}</strong>
                         <small>{typeof currentRating === "number" && currentRating > 0
                           ? currentRating.toLocaleString(locale === "pt" ? "pt-BR" : "en-US") + " ELO"
-                          : "{t.eloUnavailable}"}</small>
+                          : t.eloUnavailable}</small>
                       </div>;
                     })}
                     <p>{t.modeNotDisclosedByFeed}</p>
@@ -819,7 +819,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                   const listedPlayers = playersInMatch.filter((player) => rankedProfileIds.has(Number(player.profileId)));
                   return <article className={styles.matchCard} key={match.matchId}>
                     <div className={styles.matchTop}><span><i /> {t.live.toUpperCase()}</span><small>{formatTime(match.started, locale)}</small></div>
-                    <strong className={styles.matchMap}>{match.mapName ?? match.map ?? "{t.unknownMap}"}</strong>
+                    <strong className={styles.matchMap}>{match.mapName ?? match.map ?? t.unknownMap}</strong>
                     <div className={styles.matchPlayers}>
                       {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
                         <span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
@@ -839,7 +839,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
               <div><span className={styles.eyebrow}>{t.recentHistory.toUpperCase()}</span><h3><History size={17} /> {t.completedMatches.toUpperCase()}</h3></div>
               <span className={styles.countBadge}>{visibleRecentMatches.length}</span>
             </div>
-            <p className={styles.recentSubtitle}>{t.matchesCompletedIn} · {regionLabel(region, locale)} · {mode}</p>
+            <p className={styles.recentSubtitle}>{t.matchesCompletedIn} · {regionLabel(region, locale)} · {locale === "en" && mode === "1v1" ? "1v1" : mode}</p>
             {visibleRecentMatches.length === 0 ? (
               <div className={styles.sideEmpty}>
                 {recentMatchesError
@@ -857,10 +857,10 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                     playersInMatch.find((player) => Number(player.profileId) > 0);
                   return <article className={styles.matchCard} key={match.matchId}>
                     <div className={styles.matchTop}>
-                      <span className={styles.completedTag}><i /> ENCERRADA</span>
+                      <span className={styles.completedTag}><i /> {t.completedStatus.toUpperCase()}</span>
                       <small>{formatRelative(match.finished, locale)}</small>
                     </div>
-                    <strong className={styles.matchMap}>{match.mapName ?? match.map ?? "Mapa não identificado"}</strong>
+                    <strong className={styles.matchMap}>{match.mapName ?? match.map ?? t.unknownMap}</strong>
                     {(() => {
                       const winners = playersInMatch.filter((player) => player.won === true);
                       const losers = playersInMatch.filter((player) => player.won === false);
@@ -920,7 +920,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                 })}
               </div>
             )}
-            <div className={styles.replayNote}>{t.replayZipNote} <strong>.aoe2record</strong> para abrir a gravação no Age of Empires II: Definitive Edition.</div>
+            <div className={styles.replayNote}>{t.replayZipNote} <strong>.aoe2record</strong> {t.replayZipFinish}</div>
           </section>
         </aside>
       </div>

@@ -328,7 +328,7 @@ export default function LiveChat({ locale }: { locale: LiveLocale }) {
                 </button>
                 {isChangingNickname ? (
                   <button type="button" className={styles.cancelNickname} onClick={cancelNicknameChange} disabled={sending}>
-                    CANCELAR
+                    {t.cancel.toUpperCase()}
                   </button>
                 ) : null}
               </div>
@@ -339,7 +339,7 @@ export default function LiveChat({ locale }: { locale: LiveLocale }) {
                 <div className={styles.savedAs}>
                   <span>{t.chattingAs} <b>{savedNickname}</b></span>
                   <button type="button" className={styles.changeNicknameButton} onClick={beginNicknameChange} disabled={sending}>
-                    TROCAR NICK
+                    {t.changeNickname.toUpperCase()}
                   </button>
                 </div>
               ) : null}

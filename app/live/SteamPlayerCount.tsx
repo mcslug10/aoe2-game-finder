@@ -58,7 +58,7 @@ export default function SteamPlayerCount({ locale }: { locale: LiveLocale }) {
       active = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [locale]);
 
   const title = error && playerCount === null
     ? t.steamUnavailableTitle

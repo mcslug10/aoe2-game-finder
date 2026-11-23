@@ -44,7 +44,7 @@ export const liveText = {
     dragChat:"Arraste para mover o chat",steamLabel:"Jogadores na Steam",steamUnavailable:"Dados indisponíveis",
     steamLive60s:"Ao vivo · 60s",steamUpdatedAt:"Atualizado às",steamUnavailableTitle:"Não foi possível consultar os jogadores online da Steam",
     steamTitle:"Jogadores atualmente ativos na Steam. Atualização automática a cada 60 segundos.",
-    steamCountUnavailable:"Quantidade de jogadores online na Steam indisponível",steamPlayersOnline:"jogadores online na Steam"
+    steamCountUnavailable:"Quantidade de jogadores online na Steam indisponível",steamPlayersOnline:"jogadores online na Steam",completedStatus:"Encerrada",profile:"Perfil",unknownPlayer:"Jogador",replayZipFinish:"para abrir a gravação no Age of Empires II: Definitive Edition."
   },
   en: {
     backToGameFinder:"Back to Game Finder",liveMonitoring:"Live monitoring",companionData:"AoE II Companion data",
@@ -89,6 +89,6 @@ export const liveText = {
     dragChat:"Drag to move the chat",steamLabel:"Players on Steam",steamUnavailable:"Data unavailable",
     steamLive60s:"Live · 60s",steamUpdatedAt:"Updated at",steamUnavailableTitle:"Could not retrieve the number of Steam players online",
     steamTitle:"Players currently active on Steam. Automatically updated every 60 seconds.",
-    steamCountUnavailable:"Steam online player count unavailable",steamPlayersOnline:"players online on Steam"
+    steamCountUnavailable:"Steam online player count unavailable",steamPlayersOnline:"players online on Steam",completedStatus:"Completed",profile:"Profile",unknownPlayer:"Player",replayZipFinish:"to watch the replay in Age of Empires II: Definitive Edition."
   }
 } as const;
