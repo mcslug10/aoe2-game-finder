@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import styles from "./live.module.css";
 import LiveChat from "./LiveChat";
+import SteamPlayerCount from "./SteamPlayerCount";
 
 type Mode = "1v1" | "TG";
 type Region = "WORLD" | "BR";
@@ -605,6 +606,7 @@ export default function LiveTrackerPage() {
         </Link>
         <div className={styles.headerRight}>
           <span className={styles.livePulse}><i /> MONITORAMENTO AO VIVO</span>
+          <SteamPlayerCount />
           <span className={styles.sourceName}>DADOS DO AOE II COMPANION</span>
         </div>
         <Link href="/" className={styles.backLink}><ArrowLeft size={16} /> VOLTAR AO GAME FINDER</Link>

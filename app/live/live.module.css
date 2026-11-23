@@ -1025,3 +1025,7 @@
 @media(prefers-reduced-motion:reduce){
   .queueToast{animation:none}
 }
+
+
+/* SteamDB/Steam player count in the Live Tracker masthead. */
+.headerRight{gap:7px}
