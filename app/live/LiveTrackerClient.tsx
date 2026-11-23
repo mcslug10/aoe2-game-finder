@@ -512,7 +512,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
       queueSocket?.close();
       matchSocket?.close();
     };
-  }, [loading, publishQueueNotifications]);
+  }, [loading, publishQueueNotifications, locale]);
 
   const hasExpandedTeamTracking = mode === "TG";
   const hasBrazil800Tracking = region === "BR_800_1400";

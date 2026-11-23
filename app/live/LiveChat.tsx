@@ -172,7 +172,7 @@ export default function LiveChat({ locale }: { locale: LiveLocale }) {
       active = false;
       window.clearInterval(timer);
     };
-  }, [open, refreshMessages]);
+  }, [open, refreshMessages, locale]);
 
   useEffect(() => {
     if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
