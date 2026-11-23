@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  BellRing,
   Castle,
   Download,
   History,
@@ -21,6 +22,7 @@ import {
   Swords,
   Trophy,
   Users,
+  X,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -90,6 +92,23 @@ type LiveMatch = {
   server?: string;
   teams?: Array<{ teamId?: number; players?: LivePlayer[] }>;
   players?: LivePlayer[];
+};
+
+type QueueNotification = {
+  id: string;
+  profileId: number;
+  name: string;
+  country?: string;
+  rating: number | null;
+  mode: Mode;
+  region: Region;
+};
+
+type QueueNotificationContext = {
+  mode: Mode;
+  region: Region;
+  players: Map<number, { name: string; rating: number }>;
+  ready: boolean;
 };
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
@@ -196,7 +215,19 @@ export default function LiveTrackerPage() {
   const [loadError, setLoadError] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
-  const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [queueNotifications, setQueueNotifications] = useState<QueueNotification[]>([]);
+  const queueItemsRef = useRef(new Map<string, QueueItem>());
+  const queueNotificationContextRef = useRef<QueueNotificationContext>({
+    mode: "1v1",
+    region: "WORLD",
+    players: new Map(),
+    ready: false,
+  });
+  const queueNotificationSeenRef = useRef(new Set<string>());
+  const queueNotificationBaselineReadyRef = useRef(false);
+  const queueNotificationTimersRef = useRef(new Map<string, number>());
+  const loadedLeaderboardKeyRef = useRef("");
+  const liveMatchesRef = useRef<LiveMatch[]>([]);
   const [recentMatches, setRecentMatches] = useState<LiveMatch[]>([]);
   const [recentMatchesError, setRecentMatchesError] = useState("");
   const liveMatchesRef = useRef<LiveMatch[]>([]);
@@ -206,7 +237,32 @@ export default function LiveTrackerPage() {
   const [matchConnection, setMatchConnection] = useState<ConnectionState>("connecting");
   const [socketUpdatedAt, setSocketUpdatedAt] = useState<string | null>(null);
 
+  const dismissQueueNotification = useCallback((id: string) => {
+    const timer = queueNotificationTimersRef.current.get(id);
+    if (timer !== undefined) window.clearTimeout(timer);
+    queueNotificationTimersRef.current.delete(id);
+    setQueueNotifications((current) => current.filter((notification) => notification.id !== id));
+  }, [loading, publishQueueNotifications]);
+
+  const publishQueueNotifications = useCallback((notifications: QueueNotification[]) => {
+    if (!notifications.length) return;
+    setQueueNotifications((current) => [...current, ...notifications].slice(-4));
+    for (const notification of notifications) {
+      const timer = window.setTimeout(() => {
+        setQueueNotifications((current) => current.filter((item) => item.id !== notification.id));
+        queueNotificationTimersRef.current.delete(notification.id);
+      }, 8500);
+      queueNotificationTimersRef.current.set(notification.id, timer);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    for (const timer of queueNotificationTimersRef.current.values()) window.clearTimeout(timer);
+    queueNotificationTimersRef.current.clear();
+  }, []);
+
   const loadLeaderboard = useCallback(async (manual = false) => {
+    loadedLeaderboardKeyRef.current = "";
     if (manual) setRefreshing(true);
     else setLoading(true);
     setLoadError("");
@@ -221,6 +277,7 @@ export default function LiveTrackerPage() {
       setTrackedPlayersTotal(Number(data.trackedPlayersTotal ?? data.trackedPlayers?.length ?? 0));
       setTotalPlayers(Number(data.total ?? data.players?.length ?? 0));
       setUpdatedAt(data.updatedAt ?? new Date().toISOString());
+      loadedLeaderboardKeyRef.current = mode + ":" + region;
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Falha ao consultar o ranking.");
       setPlayers([]);
@@ -258,7 +315,10 @@ export default function LiveTrackerPage() {
         );
 
         socket.onopen = () => {
-          if (!stopped) setConnection("connected");
+          if (!stopped) {
+            setConnection("connected");
+            if (handler === "queueing") queueNotificationBaselineReadyRef.current = false;
+          }
         };
         socket.onmessage = (message) => {
           if (stopped) return;
@@ -296,33 +356,93 @@ export default function LiveTrackerPage() {
     };
 
     const handleQueueEvents = (events: Record<string, unknown>[]) => {
-      setQueueItems((current) => {
-        const next = new Map(current.map((item) => [item.id, item]));
-        for (const event of events) {
-          const payload = asRecord(event.data);
-          if (!payload) continue;
-          const type = String(event.type ?? "");
-          const id = String(payload.id ?? "");
-          if (!id) continue;
-          if (type === "queueingRemoved") {
-            next.delete(id);
-          } else if (type === "queueingAdded" || type === "queueingUpdated") {
-            const players = Array.isArray(payload.players) ? payload.players as QueuePlayer[] : [];
-            const status = payload.status === "matched" ? "matched" : "queueing";
-            next.set(id, {
-              id,
-              status,
-              matchId: Number(payload.matchId) || undefined,
-              leaderboard: typeof payload.leaderboard === "string" ? payload.leaderboard : undefined,
-              mapName: typeof payload.mapName === "string" ? payload.mapName : undefined,
-              queueingSince: typeof payload.queueingSince === "string" ? payload.queueingSince : undefined,
-              matchedAt: typeof payload.matchedAt === "string" ? payload.matchedAt : undefined,
-              players,
+      const next = new Map(queueItemsRef.current);
+      const notifications: QueueNotification[] = [];
+      const isInitialBatch = !queueNotificationBaselineReadyRef.current;
+      const context = queueNotificationContextRef.current;
+
+      const clearQueueDedupe = (queueId: string) => {
+        const prefix = queueId + "::";
+        for (const key of Array.from(queueNotificationSeenRef.current)) {
+          if (key.startsWith(prefix)) queueNotificationSeenRef.current.delete(key);
+        }
+      };
+
+      for (const event of events) {
+        const payload = asRecord(event.data);
+        if (!payload) continue;
+        const type = String(event.type ?? "");
+        const id = String(payload.id ?? "");
+        if (!id) continue;
+
+        if (type === "queueingRemoved") {
+          next.delete(id);
+          clearQueueDedupe(id);
+          continue;
+        }
+
+        if (type !== "queueingAdded" && type !== "queueingUpdated") continue;
+
+        const previous = next.get(id);
+        const players = Array.isArray(payload.players) ? payload.players as QueuePlayer[] : [];
+        const status = payload.status === "matched" ? "matched" : "queueing";
+        const item: QueueItem = {
+          id,
+          status,
+          matchId: Number(payload.matchId) || undefined,
+          leaderboard: typeof payload.leaderboard === "string" ? payload.leaderboard : undefined,
+          mapName: typeof payload.mapName === "string" ? payload.mapName : undefined,
+          queueingSince: typeof payload.queueingSince === "string" ? payload.queueingSince : undefined,
+          matchedAt: typeof payload.matchedAt === "string" ? payload.matchedAt : undefined,
+          players,
+        };
+
+        if (status === "queueing") {
+          if (previous && previous.status !== "queueing") clearQueueDedupe(id);
+          const alreadyQueueing = new Set(
+            previous?.status === "queueing"
+              ? previous.players.map((player) => Number(player.profileId)).filter((profileId) => profileId > 0)
+              : [],
+          );
+          const initialQueueAge = item.queueingSince
+            ? Date.now() - new Date(item.queueingSince).getTime()
+            : Number.POSITIVE_INFINITY;
+          const initialEntryIsRecent = Number.isFinite(initialQueueAge) && initialQueueAge >= 0 && initialQueueAge <= 30_000;
+
+          for (const player of players) {
+            const profileId = Number(player.profileId);
+            if (!Number.isSafeInteger(profileId) || profileId <= 0 || alreadyQueueing.has(profileId)) continue;
+            const watchedPlayer = context.players.get(profileId);
+            if (!context.ready || !watchedPlayer) continue;
+
+            // The first socket batch can be a snapshot of players who were already
+            // queueing before the visitor arrived. Only notify for entries from the
+            // last 30 seconds in that initial batch; later new/updated events notify normally.
+            if (isInitialBatch && !initialEntryIsRecent) continue;
+
+            const dedupeKey = id + "::" + profileId;
+            if (queueNotificationSeenRef.current.has(dedupeKey)) continue;
+            queueNotificationSeenRef.current.add(dedupeKey);
+
+            notifications.push({
+              id: dedupeKey + "::" + Date.now() + "::" + notifications.length,
+              profileId,
+              name: watchedPlayer.name || player.name || "Jogador",
+              country: player.country,
+              rating: watchedPlayer.rating > 0 ? watchedPlayer.rating : null,
+              mode: context.mode,
+              region: context.region,
             });
           }
         }
-        return Array.from(next.values()).slice(-500);
-      });
+
+        next.set(id, item);
+      }
+
+      queueItemsRef.current = next;
+      setQueueItems(Array.from(next.values()).slice(-500));
+      if (isInitialBatch) queueNotificationBaselineReadyRef.current = true;
+      publishQueueNotifications(notifications);
     };
 
     const handleMatchEvents = (events: Record<string, unknown>[]) => {
@@ -355,8 +475,10 @@ export default function LiveTrackerPage() {
       }
     };
 
-    queueSocket = connect("queueing", setQueueConnection, handleQueueEvents);
-    matchSocket = connect("ongoing-matches", setMatchConnection, handleMatchEvents);
+    if (!loading) {
+      queueSocket = connect("queueing", setQueueConnection, handleQueueEvents);
+      matchSocket = connect("ongoing-matches", setMatchConnection, handleMatchEvents);
+    }
 
     return () => {
       stopped = true;
@@ -380,6 +502,15 @@ export default function LiveTrackerPage() {
     () => new Map(monitoredPlayers.map((player) => [player.profileId, player.rating])),
     [monitoredPlayers],
   );
+  queueNotificationContextRef.current = {
+    mode,
+    region,
+    players: new Map(monitoredPlayers.map((player) => [
+      player.profileId,
+      { name: player.name, rating: player.rating },
+    ])),
+    ready: loadedLeaderboardKeyRef.current === mode + ":" + region && !loadError,
+  };
   const monitoredProfileIds = useMemo(
     () => monitoredPlayers.map((player) => player.profileId).filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
     [monitoredPlayers],
@@ -755,6 +886,25 @@ export default function LiveTrackerPage() {
             <div className={styles.replayNote}>O download oficial é entregue em ZIP. Extraia o arquivo <strong>.aoe2record</strong> para abrir a gravação no Age of Empires II: Definitive Edition.</div>
           </section>
         </aside>
+      </div>
+
+      <div className={styles.queueToastStack} aria-live="polite" aria-atomic="false">
+        {queueNotifications.map((notification) => (
+          <div className={styles.queueToast} role="status" key={notification.id}>
+            <div className={styles.queueToastIcon}><BellRing size={18} /></div>
+            <div className={styles.queueToastContent}>
+              <span>ENTROU NA FILA</span>
+              <strong>{flagEmoji(notification.country)} {notification.name}</strong>
+              <small>
+                {notification.mode === "1v1" ? "1x1" : "TG"} · {notification.region === "BR" ? "Brasil" : "Mundo"}
+                {typeof notification.rating === "number" ? " · " + notification.rating.toLocaleString("pt-BR") + " ELO" : ""}
+              </small>
+            </div>
+            <button type="button" onClick={() => dismissQueueNotification(notification.id)} aria-label="Fechar notificação">
+              <X size={15} />
+            </button>
+          </div>
+        ))}
       </div>
 
       <footer className={styles.footer}>

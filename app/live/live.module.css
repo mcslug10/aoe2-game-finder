@@ -935,3 +935,93 @@
 @media (max-width: 560px) {
   .queuePlayer small { font-size: 11px; }
 }
+
+
+/* Matchmaking queue notifications, positioned above the floating community chat. */
+.queueToastStack{
+  position:fixed;
+  right:22px;
+  bottom:88px;
+  z-index:120;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:9px;
+  width:min(360px,calc(100vw - 24px));
+  pointer-events:none;
+}
+.queueToast{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  width:100%;
+  padding:12px 13px;
+  color:#4b2d1c;
+  background:
+    repeating-linear-gradient(0deg,rgba(129,88,43,.025) 0 1px,transparent 1px 4px),
+    linear-gradient(145deg,#f5e6c9,#e4cba3);
+  border:1px solid #a77b48;
+  box-shadow:inset 0 0 0 3px rgba(255,248,229,.5),inset 0 0 0 4px rgba(133,93,49,.2),0 8px 22px rgba(0,0,0,.42);
+  pointer-events:auto;
+  animation:queueToastIn .22s ease-out;
+}
+.queueToastIcon{
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  flex:none;
+  color:#f1d6a1;
+  background:linear-gradient(145deg,#8b4029,#512419);
+  border:1px solid #bc8c56;
+  box-shadow:inset 0 0 0 2px #51271b;
+}
+.queueToastContent{
+  display:flex;
+  flex:1;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+.queueToastContent>span{
+  color:#3f7544;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.85px;
+}
+.queueToastContent strong{
+  overflow:hidden;
+  color:#552d1d;
+  font:700 13px 'Cinzel',Georgia,serif;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.queueToastContent small{
+  color:#886c4b;
+  font-size:10px;
+  font-weight:700;
+}
+.queueToast>button{
+  display:grid;
+  place-items:center;
+  width:27px;
+  height:27px;
+  flex:none;
+  color:#795638;
+  background:rgba(255,247,225,.45);
+  border:1px solid rgba(139,99,53,.4);
+  cursor:pointer;
+}
+.queueToast>button:hover{color:#7d171c;background:rgba(255,255,255,.65)}
+@keyframes queueToastIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:560px){
+  .queueToastStack{right:10px;bottom:77px;width:calc(100vw - 20px);gap:7px}
+  .queueToast{padding:10px}
+  .queueToastContent strong{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .queueToast{animation:none}
+}
