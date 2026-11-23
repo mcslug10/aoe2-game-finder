@@ -304,7 +304,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
       setUpdatedAt(data.updatedAt ?? new Date().toISOString());
       loadedLeaderboardKeyRef.current = mode + ":" + region;
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Falha ao consultar o ranking.");
+      setLoadError(locale === "pt" ? (error instanceof Error ? error.message : "Falha ao consultar o ranking.") : "Could not retrieve the leaderboard. Please try again.");
       setPlayers([]);
       setTrackedPlayers([]);
       setTrackedPlayersTotal(0);
@@ -313,7 +313,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
       setLoading(false);
       setRefreshing(false);
     }
-  }, [mode, region]);
+  }, [mode, region, locale]);
 
   useEffect(() => {
     void loadLeaderboard();
@@ -452,7 +452,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
             notifications.push({
               id: dedupeKey + "::" + Date.now() + "::" + notifications.length,
               profileId,
-              name: watchedPlayer.name || player.name || "Jogador",
+              name: watchedPlayer.name || player.name || t.unknownPlayer,
               country: player.country,
               rating: watchedPlayer.rating > 0 ? watchedPlayer.rating : null,
               mode: context.mode,
@@ -703,9 +703,16 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
       {hasExpandedTracking ? (
         <div className={styles.trackingNotice}>
           <strong>{t.expandedTrackingActive.toUpperCase()}</strong>
-          <span>{hasBrazil800Tracking
-            ? trackedPlayersTotal.toLocaleString(locale === "pt" ? "pt-BR" : "en-US") + (locale === "pt" ? " jogadores brasileiros da ladder " : " Brazilian players on the ") + (mode === "1v1" ? "1x1" : "TG") + (locale === "pt" ? (locale === "pt" ? " com ELO entre 800 e 1400 estão sendo acompanhados, inclusive fora do Top 100. " : " ladder players rated 800–1400 are being tracked, including those outside the Top 100. ") : " ladder with an ELO between 800 and 1400 are being tracked, including players outside the Top 100. ")
-            : trackedPlayersTotal.toLocaleString(locale === "pt" ? "pt-BR" : "en-US") + (locale === "pt" ? " perfis do ranking TG " : " TG ") + regionLabel(region, locale) + (locale === "pt" ? " com ELO " : " leaderboard profiles rated ") + trackingMinRating + "+ " + (locale === "pt" ? "estão sendo acompanhados, inclusive fora do Top 100. " : "are being tracked, including players outside the Top 100. ")}{t.trackedGamesAndQueues}</span>
+          <span>
+            {hasBrazil800Tracking
+              ? locale === "pt"
+                ? trackedPlayersTotal.toLocaleString("pt-BR") + " jogadores brasileiros da ladder " + (mode === "1v1" ? "1x1" : "TG") + " com ELO entre 800 e 1400 estão sendo acompanhados, inclusive fora do Top 100. "
+                : trackedPlayersTotal.toLocaleString("en-US") + " Brazilian players on the " + (mode === "1v1" ? "1v1" : "TG") + " ladder rated 800–1400 are being tracked, including players outside the Top 100. "
+              : locale === "pt"
+                ? trackedPlayersTotal.toLocaleString("pt-BR") + " perfis do ranking TG " + regionLabel(region, locale) + " com ELO " + trackingMinRating + "+ estão sendo acompanhados, inclusive fora do Top 100. "
+                : trackedPlayersTotal.toLocaleString("en-US") + " TG " + regionLabel(region, locale) + " leaderboard profiles rated " + trackingMinRating + "+ are being tracked, including players outside the Top 100. "}
+            {t.trackedGamesAndQueues}
+          </span>
         </div>
       ) : null}
 
@@ -714,7 +721,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
           <div className={styles.panelHeader}>
             <div>
               <span className={styles.eyebrow}>{t.competitiveRanking}</span>
-              <h3><Medal size={19} /> TOP 100 · {regionLabel(region, locale).toUpperCase()} · {mode}</h3>
+              <h3><Medal size={19} /> TOP 100 · {regionLabel(region, locale).toUpperCase()} · {locale === "en" && mode === "1v1" ? "1v1" : mode}</h3>
               <p>{t.sortedByCurrentRating}</p>
             </div>
             <label className={styles.searchBox}>
@@ -822,11 +829,11 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                     <strong className={styles.matchMap}>{match.mapName ?? match.map ?? t.unknownMap}</strong>
                     <div className={styles.matchPlayers}>
                       {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
-                        <span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
+                        <span>{flagEmoji(player.country)}</span><strong>{player.name ?? t.unknownPlayer}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
                         {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasBrazil800Tracking ? trackingRatingLabel : hasExpandedTeamTracking ? trackingMinRating + "+" : "TOP"}</b> : null}
                       </div>)}
                     </div>
-                    <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} monitorado(s)</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> {t.watchInGame.toUpperCase()}</a></div>
+                    <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} {locale === "pt" ? "monitorado(s)" : "tracked"}</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> {t.watchInGame.toUpperCase()}</a></div>
                   </article>;
                 })}
               </div>
@@ -871,7 +878,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                           key={String(player.profileId ?? player.name ?? side) + "-" + index}
                         >
                           <span>{flagEmoji(player.country)}</span>
-                          <strong>{player.name ?? "Jogador"}</strong>
+                          <strong>{player.name ?? t.unknownPlayer}</strong>
                           {typeof player.rating === "number" ? <small>{player.rating}</small> : null}
                         </div>)
                       );
@@ -907,7 +914,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
                       </>;
                     })()}
                     <div className={styles.matchBottom}>
-                      <span>{match.leaderboardName ?? match.gameModeName ?? (mode === "1v1" ? "1x1" : "TG")} · {t.finishedAt} {formatTime(match.finished, locale)}</span>
+                      <span>{match.leaderboardName ?? match.gameModeName ?? (locale === "en" && mode === "1v1" ? "1v1" : mode)} · {t.finishedAt} {formatTime(match.finished, locale)}</span>
                       {replayPlayer ? (
                         <a href={"https://aoe.ms/replay/?gameId=" + match.matchId + "&profileId=" + replayPlayer.profileId} target="_blank" rel="noreferrer">
                           <Download size={14} /> {t.downloadReplay.toUpperCase()}

@@ -123,7 +123,7 @@ export default function LiveChat({ locale }: { locale: LiveLocale }) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(apiMessage(payload, t.loadChatError, locale));
     setMessages(Array.isArray(payload.messages) ? payload.messages as ChatMessage[] : []);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!open) return;
