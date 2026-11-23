@@ -503,7 +503,7 @@ export default function LiveTrackerPage() {
   const hasExpandedTracking = hasExpandedTeamTracking || hasBrazil800Tracking;
   const trackingMinRating = hasBrazil800Tracking ? 800 : region === "BR" ? 1200 : 1300;
   const trackingMaxRating = hasBrazil800Tracking ? 1400 : null;
-  const trackingRatingLabel = hasBrazil800Tracking ? "800–1400" : trackingMinRating + "+";
+  const trackingRatingLabel = trackingMaxRating !== null ? trackingMinRating + "–" + trackingMaxRating : trackingMinRating + "+";
   const monitoredPlayers = hasExpandedTracking ? trackedPlayers : players;
   const rankedProfileIds = useMemo(
     () => new Set(monitoredPlayers.map((player) => player.profileId)),

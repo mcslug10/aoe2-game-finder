@@ -105,6 +105,15 @@ function resolvePlayerResults(players: MatchPlayer[]) {
     }
   }
 
+  // In a standard two-team match, if one team's result is explicit and the
+  // opposing team's result is missing, the opposite outcome is unambiguous.
+  if (playersByTeam.size === 2 && teamResults.size === 1) {
+    const knownOutcome = [...teamResults.values()][0];
+    for (const teamId of playersByTeam.keys()) {
+      if (!teamResults.has(teamId)) teamResults.set(teamId, !knownOutcome);
+    }
+  }
+
   return players.map((player) => {
     if (typeof player.won === "boolean") return player;
     if (typeof player.team === "number" && teamResults.has(player.team)) {

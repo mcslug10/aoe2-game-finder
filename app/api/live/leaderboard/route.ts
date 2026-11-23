@@ -144,7 +144,8 @@ async function fetchPlayersInRatingRange(
     const normalized = normalizePlayer(player);
     if (normalized.rating < minimumRating) continue;
     if (typeof maximumRating === "number" && normalized.rating > maximumRating) continue;
-    if (region !== "WORLD" && normalized.country && normalized.country !== "BR") continue;
+    if (region === "BR_800_1400" && normalized.country !== "BR") continue;
+    if (region === "BR" && normalized.country && normalized.country !== "BR") continue;
     distinct.set(normalized.profileId, normalized);
   }
 
