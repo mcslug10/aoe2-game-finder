@@ -31,7 +31,7 @@ import LiveChat from "./LiveChat";
 import SteamPlayerCount from "./SteamPlayerCount";
 
 type Mode = "1v1" | "TG";
-type Region = "WORLD" | "BR";
+type Region = "WORLD" | "BR" | "BR_800_1400";
 
 type RankedPlayer = {
   profileId: number;
@@ -73,8 +73,10 @@ type LivePlayer = {
   name?: string;
   country?: string;
   rating?: number;
+  ratingDiff?: number;
   replay?: boolean;
-  won?: boolean;
+  won?: boolean | null;
+  team?: number;
   civName?: string;
   civ?: string;
 };
@@ -122,6 +124,12 @@ function eventList(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) return value.map(asRecord).filter((item): item is Record<string, unknown> => item !== null);
   const record = asRecord(value);
   return record ? [record] : [];
+}
+
+function regionLabel(region: Region) {
+  if (region === "BR") return "Brasil";
+  if (region === "BR_800_1400") return "Brasil 800+";
+  return "Mundo";
 }
 
 function flagEmoji(country?: string) {
@@ -491,8 +499,12 @@ export default function LiveTrackerPage() {
   }, [loading, publishQueueNotifications]);
 
   const hasExpandedTeamTracking = mode === "TG";
-  const trackingMinRating = region === "BR" ? 1200 : 1300;
-  const monitoredPlayers = hasExpandedTeamTracking ? trackedPlayers : players;
+  const hasBrazil800Tracking = region === "BR_800_1400";
+  const hasExpandedTracking = hasExpandedTeamTracking || hasBrazil800Tracking;
+  const trackingMinRating = hasBrazil800Tracking ? 800 : region === "BR" ? 1200 : 1300;
+  const trackingMaxRating = hasBrazil800Tracking ? 1400 : null;
+  const trackingRatingLabel = hasBrazil800Tracking ? "800–1400" : trackingMinRating + "+";
+  const monitoredPlayers = hasExpandedTracking ? trackedPlayers : players;
   const rankedProfileIds = useMemo(
     () => new Set(monitoredPlayers.map((player) => player.profileId)),
     [monitoredPlayers],
@@ -640,6 +652,7 @@ export default function LiveTrackerPage() {
           <div className={styles.segmented}>
             <button type="button" className={region === "BR" ? styles.selected : ""} onClick={() => setRegion("BR")}>🇧🇷 Brasil</button>
             <button type="button" className={region === "WORLD" ? styles.selected : ""} onClick={() => setRegion("WORLD")}>🌍 Mundo</button>
+            <button type="button" className={region === "BR_800_1400" ? styles.selected : ""} onClick={() => setRegion("BR_800_1400")}>🇧🇷 Brasil 800+</button>
           </div>
         </div>
         <div className={styles.filterDivider} />
@@ -659,7 +672,7 @@ export default function LiveTrackerPage() {
       <section className={styles.metrics}>
         <article className={styles.metricCard}>
           <div className={styles.metricIcon}><Trophy size={18} /></div>
-          <div><span>JOGADORES NO RANKING</span><strong>{loading ? "—" : totalPlayers.toLocaleString("pt-BR")}</strong><small>{region === "BR" ? "Brasil" : "Mundo"} · {mode}</small></div>
+          <div><span>JOGADORES NO RANKING</span><strong>{loading ? "—" : totalPlayers.toLocaleString("pt-BR")}</strong><small>{regionLabel(region)} · {mode}</small></div>
         </article>
         <article className={styles.metricCard}>
           <div className={styles.metricIcon}><Radio size={18} /></div>
@@ -671,10 +684,12 @@ export default function LiveTrackerPage() {
         </article>
       </section>
 
-      {hasExpandedTeamTracking ? (
+      {hasExpandedTracking ? (
         <div className={styles.trackingNotice}>
           <strong>MONITORAMENTO AMPLIADO ATIVO</strong>
-          <span>{trackedPlayersTotal.toLocaleString("pt-BR")} perfis do ranking TG {region === "BR" ? "Brasil" : "Mundo"} com ELO {trackingMinRating}+ estão sendo acompanhados, inclusive fora do Top 100. Jogos e filas desses jogadores aparecem nos painéis ao lado.</span>
+          <span>{hasBrazil800Tracking
+            ? trackedPlayersTotal.toLocaleString("pt-BR") + " jogadores brasileiros da ladder " + (mode === "1v1" ? "1x1" : "TG") + " com ELO entre 800 e 1400 estão sendo acompanhados, inclusive fora do Top 100. "
+            : trackedPlayersTotal.toLocaleString("pt-BR") + " perfis do ranking TG " + regionLabel(region) + " com ELO " + trackingMinRating + "+ estão sendo acompanhados, inclusive fora do Top 100. "}Jogos e filas desses jogadores aparecem nos painéis ao lado.</span>
         </div>
       ) : null}
 
@@ -683,7 +698,7 @@ export default function LiveTrackerPage() {
           <div className={styles.panelHeader}>
             <div>
               <span className={styles.eyebrow}>RANKING COMPETITIVO</span>
-              <h3><Medal size={19} /> TOP 100 · {region === "BR" ? "BRASIL" : "MUNDO"} · {mode}</h3>
+              <h3><Medal size={19} /> TOP 100 · {regionLabel(region).toUpperCase()} · {mode}</h3>
               <p>Ordenado pelo rating atual na ladder oficial.</p>
             </div>
             <label className={styles.searchBox}>
@@ -736,7 +751,11 @@ export default function LiveTrackerPage() {
               </table>
             </div>
           )}
-          <div className={styles.tableFootnote}>* No modo TG Brasil, a detecção inclui todos os perfis dessa ladder com ELO 1200+. O feed de fila não confirma a modalidade enquanto a partida ainda está sendo formada; por isso, a fila mostra jogadores pertencentes a esse grupo monitorado. As partidas ao vivo são filtradas pela modalidade TG e pela participação de pelo menos um desses jogadores.</div>
+          <div className={styles.tableFootnote}>* {hasBrazil800Tracking
+            ? "Brasil 800+: são acompanhados todos os brasileiros com ELO entre 800 e 1400 nesta modalidade; a tabela exibe os 100 melhores dentro dessa faixa."
+            : hasExpandedTeamTracking
+              ? "No modo TG " + regionLabel(region) + ", a detecção inclui todos os perfis dessa ladder com ELO " + trackingMinRating + "+. O feed de fila não confirma a modalidade enquanto a partida ainda está sendo formada; por isso, a fila mostra jogadores pertencentes a esse grupo monitorado."
+              : "A detecção de fila e partidas usa os jogadores da tabela Top 100."} As partidas ao vivo são filtradas pela modalidade selecionada e pela participação de pelo menos um desses jogadores.</div>
         </section>
 
         <aside className={styles.sideColumn}>
@@ -788,7 +807,7 @@ export default function LiveTrackerPage() {
                     <div className={styles.matchPlayers}>
                       {playersInMatch.slice(0, 8).map((player) => <div className={styles.matchPlayer} key={player.profileId}>
                         <span>{flagEmoji(player.country)}</span><strong>{player.name ?? "Jogador"}</strong>{typeof player.rating === "number" ? <small>{player.rating}</small> : null}
-                        {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasExpandedTeamTracking ? trackingMinRating + "+" : "TOP"}</b> : null}
+                        {rankedProfileIds.has(Number(player.profileId)) ? <b>{hasBrazil800Tracking ? trackingRatingLabel : hasExpandedTeamTracking ? trackingMinRating + "+" : "TOP"}</b> : null}
                       </div>)}
                     </div>
                     <div className={styles.matchBottom}><span>{match.leaderboardName ?? (mode === "1v1" ? "1x1" : "TG")} · {listedPlayers.length} monitorado(s)</span><a href={"aoe2de://1/" + match.matchId}><Gamepad2 size={15} /> ASSISTIR NO JOGO</a></div>
@@ -804,7 +823,7 @@ export default function LiveTrackerPage() {
               <div><span className={styles.eyebrow}>HISTÓRICO RECENTE</span><h3><History size={17} /> PARTIDAS ENCERRADAS</h3></div>
               <span className={styles.countBadge}>{visibleRecentMatches.length}</span>
             </div>
-            <p className={styles.recentSubtitle}>Partidas concluídas nos últimos 30 minutos · {region === "BR" ? "Brasil" : "Mundo"} · {mode}</p>
+            <p className={styles.recentSubtitle}>Partidas concluídas nos últimos 30 minutos · {regionLabel(region)} · {mode}</p>
             {visibleRecentMatches.length === 0 ? (
               <div className={styles.sideEmpty}>
                 {recentMatchesError
@@ -898,7 +917,7 @@ export default function LiveTrackerPage() {
               <span>ENTROU NA FILA</span>
               <strong>{flagEmoji(notification.country)} {notification.name}</strong>
               <small>
-                {notification.mode === "1v1" ? "1x1" : "TG"} · {notification.region === "BR" ? "Brasil" : "Mundo"}
+                {notification.mode === "1v1" ? "1x1" : "TG"} · {regionLabel(notification.region)}
                 {typeof notification.rating === "number" ? " · " + notification.rating.toLocaleString("pt-BR") + " ELO" : ""}
               </small>
             </div>

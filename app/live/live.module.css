@@ -1029,3 +1029,25 @@
 
 /* SteamDB/Steam player count in the Live Tracker masthead. */
 .headerRight{gap:7px}
+
+
+/* Three region presets, including the Brazilian 800–1400 rating band. */
+@media (min-width: 821px) {
+  .filterPanel > .filterGroup:first-child .segmented button {
+    min-width: 92px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+@media (max-width: 560px) {
+  .filterPanel > .filterGroup:first-child .segmented {
+    flex-wrap: wrap;
+  }
+  .filterPanel > .filterGroup:first-child .segmented button {
+    min-width: 0;
+    flex: 1 1 30%;
+    padding-left: 7px;
+    padding-right: 7px;
+    white-space: nowrap;
+  }
+}
