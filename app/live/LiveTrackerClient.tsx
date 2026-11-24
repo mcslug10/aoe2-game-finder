@@ -117,7 +117,7 @@ type QueueNotificationContext = {
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
-const LIVE_MATCH_PROFILE_BATCH_SIZE = 900;
+const LIVE_MATCH_PROFILE_BATCH_SIZE = 600;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" ? value as Record<string, unknown> : null;
