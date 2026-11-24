@@ -419,8 +419,7 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
               if (!stopped) queueSocket = connect(handler, setConnection, onEvents);
             }, 5000);
           } else {
-            let timer: ReturnType<typeof setTimeout>;
-            timer = setTimeout(() => {
+            const timer = setTimeout(() => {
               matchReconnectTimers.delete(timer);
               if (!stopped) connect(handler, setConnection, onEvents, profileIds);
             }, 5000);
