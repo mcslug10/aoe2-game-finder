@@ -117,6 +117,8 @@ type QueueNotificationContext = {
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
+const LIVE_MATCH_PROFILE_BATCH_SIZE = 600;
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" ? value as Record<string, unknown> : null;
 }
@@ -262,6 +264,17 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
   const [matchConnection, setMatchConnection] = useState<ConnectionState>("connecting");
   const [socketUpdatedAt, setSocketUpdatedAt] = useState<string | null>(null);
 
+  // Keep the subscription scoped to exactly the players monitored by the selected ladder.
+  // A stable key prevents reconnecting when leaderboard rows refresh but player IDs stay the same.
+  const liveProfileIdsKey = useMemo(() => {
+    const sourcePlayers = mode === "TG" || region === "BR_800_1400" ? trackedPlayers : players;
+    return Array.from(new Set(
+      sourcePlayers
+        .map((player) => Number(player.profileId))
+        .filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0),
+    )).sort((a, b) => a - b).join(",");
+  }, [mode, region, players, trackedPlayers]);
+
   const dismissQueueNotification = useCallback((id: string) => {
     const timer = queueNotificationTimersRef.current.get(id);
     if (timer !== undefined) window.clearTimeout(timer);
@@ -324,25 +337,56 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
   useEffect(() => {
     let stopped = false;
     let queueSocket: WebSocket | null = null;
-    let matchSocket: WebSocket | null = null;
     let queueReconnect: ReturnType<typeof setTimeout> | null = null;
-    let matchReconnect: ReturnType<typeof setTimeout> | null = null;
+    const matchSockets = new Set<WebSocket>();
+    const connectedMatchSockets = new Set<WebSocket>();
+    const matchReconnectTimers = new Set<ReturnType<typeof setTimeout>>();
+
+    const trackedProfileIds = liveProfileIdsKey
+      .split(",")
+      .map(Number)
+      .filter((profileId) => Number.isSafeInteger(profileId) && profileId > 0);
+    const matchProfileBatches: number[][] = [];
+    for (let index = 0; index < trackedProfileIds.length; index += LIVE_MATCH_PROFILE_BATCH_SIZE) {
+      matchProfileBatches.push(trackedProfileIds.slice(index, index + LIVE_MATCH_PROFILE_BATCH_SIZE));
+    }
+
+    const updateMatchConnection = () => {
+      if (connectedMatchSockets.size > 0) setMatchConnection("connected");
+      else if (matchSockets.size > 0) setMatchConnection("connecting");
+      else setMatchConnection("disconnected");
+    };
 
     const connect = (
       handler: "queueing" | "ongoing-matches",
       setConnection: (value: ConnectionState) => void,
       onEvents: (events: Record<string, unknown>[]) => void,
+      profileIds?: number[],
     ) => {
-      setConnection("connecting");
+      if (handler === "ongoing-matches") {
+        setConnection(connectedMatchSockets.size > 0 ? "connected" : "connecting");
+      } else {
+        setConnection("connecting");
+      }
+
       try {
+        const params = new URLSearchParams({ handler, language: "en" });
+        if (profileIds?.length) params.set("profile_ids", profileIds.join(","));
         const socket = new WebSocket(
-          "wss://socket.aoe2companion.com/listen?handler=" + handler + "&language=en",
+          "wss://socket.aoe2companion.com/listen?" + params.toString(),
         );
 
+        if (handler === "ongoing-matches") matchSockets.add(socket);
+        else queueSocket = socket;
+
         socket.onopen = () => {
-          if (!stopped) {
+          if (stopped) return;
+          if (handler === "ongoing-matches") {
+            connectedMatchSockets.add(socket);
             setConnection("connected");
-            if (handler === "queueing") queueNotificationBaselineReadyRef.current = false;
+          } else {
+            setConnection("connected");
+            queueNotificationBaselineReadyRef.current = false;
           }
         };
         socket.onmessage = (message) => {
@@ -361,21 +405,34 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
         socket.onerror = () => socket.close();
         socket.onclose = () => {
           if (stopped) return;
-          setConnection("disconnected");
-          const reconnect = () => {
-            if (stopped) return;
-            if (handler === "queueing") {
-              queueSocket = connect(handler, setConnection, onEvents);
-            } else {
-              matchSocket = connect(handler, setConnection, onEvents);
-            }
-          };
-          if (handler === "queueing") queueReconnect = setTimeout(reconnect, 5000);
-          else matchReconnect = setTimeout(reconnect, 5000);
+          if (handler === "ongoing-matches") {
+            matchSockets.delete(socket);
+            connectedMatchSockets.delete(socket);
+            updateMatchConnection();
+          } else {
+            setConnection("disconnected");
+          }
+
+          if (handler === "queueing") {
+            queueReconnect = setTimeout(() => {
+              queueReconnect = null;
+              if (!stopped) queueSocket = connect(handler, setConnection, onEvents);
+            }, 5000);
+          } else {
+            const timer = setTimeout(() => {
+              matchReconnectTimers.delete(timer);
+              if (!stopped) connect(handler, setConnection, onEvents, profileIds);
+            }, 5000);
+            matchReconnectTimers.add(timer);
+          }
         };
         return socket;
       } catch {
-        setConnection("disconnected");
+        if (handler === "ongoing-matches") {
+          setConnection(connectedMatchSockets.size > 0 ? "connected" : "disconnected");
+        } else {
+          setConnection("disconnected");
+        }
         return null;
       }
     };
@@ -502,17 +559,26 @@ export default function LiveTrackerClient({ initialLocale }: { initialLocale: Li
 
     if (!loading) {
       queueSocket = connect("queueing", setQueueConnection, handleQueueEvents);
-      matchSocket = connect("ongoing-matches", setMatchConnection, handleMatchEvents);
+      if (matchProfileBatches.length > 0) {
+        for (const batch of matchProfileBatches) {
+          connect("ongoing-matches", setMatchConnection, handleMatchEvents, batch);
+        }
+      } else {
+        setMatchConnection("disconnected");
+      }
     }
 
     return () => {
       stopped = true;
       if (queueReconnect) clearTimeout(queueReconnect);
-      if (matchReconnect) clearTimeout(matchReconnect);
+      for (const timer of matchReconnectTimers) clearTimeout(timer);
+      matchReconnectTimers.clear();
       queueSocket?.close();
-      matchSocket?.close();
+      for (const socket of matchSockets) socket.close();
+      matchSockets.clear();
+      connectedMatchSockets.clear();
     };
-  }, [loading, publishQueueNotifications, locale]);
+  }, [loading, publishQueueNotifications, locale, mode, region, liveProfileIdsKey]);
 
   const hasExpandedTeamTracking = mode === "TG";
   const hasBrazil800Tracking = region === "BR_800_1400";
