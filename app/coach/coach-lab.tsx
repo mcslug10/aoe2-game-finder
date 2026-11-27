@@ -43,6 +43,7 @@ export default function CoachLab({ report }: { report: CoachData }) {
   const [timer, setTimer] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [prior, setPrior] = useState("");
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -74,8 +75,8 @@ export default function CoachLab({ report }: { report: CoachData }) {
 
   const visibleTips = useMemo(() => tips.filter((tip) => {
     const text = [tip.title, tip.detail, tip.action, tip.time].join(" ").toLocaleLowerCase();
-    return (filter === "all" || tip.severity === filter) && text.includes(query.toLocaleLowerCase().trim());
-  }).sort((a,b) => severityRank(a.severity) - severityRank(b.severity)), [tips, filter, query]);
+    return (filter === "all" || (filter === "favorites" ? stars.includes(tip.title) : tip.severity === filter)) && text.includes(query.toLocaleLowerCase().trim());
+  }).sort((a,b) => severityRank(a.severity) - severityRank(b.severity)), [tips, filter, query, stars]);
 
   const categories = useMemo(() => Array.from(new Set(events.map((e) => e.category || "other"))).sort(), [events]);
   const visibleEvents = useMemo(() => events.filter((event) => {
@@ -116,8 +117,8 @@ export default function CoachLab({ report }: { report: CoachData }) {
     <header className={styles.head}><div><span className={styles.kicker}>CENTRAL DE TREINO · 20 FERRAMENTAS</span><h2>Transforme análise em evolução</h2><p>Recursos pessoais para revisar, praticar e acompanhar suas partidas. Preferências e notas ficam neste navegador.</p></div><span className={styles.badge}><Flame size={15}/> Coach Lab</span></header>
     <div className={styles.featureGrid}>
       <article className={styles.card}><div className={styles.cardTitle}><Search/><h3>01 · Busca de dicas</h3></div><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar erro, unidade ou recomendação"/></article>
-      <article className={styles.card}><div className={styles.cardTitle}><ListChecks/><h3>02 · Filtro de prioridade</h3></div><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todas as dicas</option><option value="high">Alta prioridade</option><option value="medium">Atenção</option><option value="positive">Pontos positivos</option></select><small>{visibleTips.length} dicas correspondentes</small></article>
-      <article className={styles.card}><div className={styles.cardTitle}><Star/><h3>03 · Dicas favoritas</h3></div><p>{stars.length} marcadas para rever.</p><button onClick={()=>setFilter("all")}>Mostrar lista completa</button></article>
+      <article className={styles.card}><div className={styles.cardTitle}><ListChecks/><h3>02 · Filtro de prioridade</h3></div><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todas as dicas</option><option value="favorites">Favoritas</option><option value="high">Alta prioridade</option><option value="medium">Atenção</option><option value="positive">Pontos positivos</option></select><small>{visibleTips.length} dicas correspondentes</small></article>
+      <article className={styles.card}><div className={styles.cardTitle}><Star/><h3>03 · Dicas favoritas</h3></div><p>{stars.length} marcadas para rever.</p><button onClick={()=>setFilter("favorites")}>Ver favoritas</button></article>
       <article className={styles.card}><div className={styles.cardTitle}><Flag/><h3>04 · Foco da sessão</h3></div><select value={focus} onChange={e=>setFocus(e.target.value)}><option value="">Escolha uma meta</option>{tips.map((t,i)=><option key={i} value={t.title}>{t.title}</option>)}</select></article>
       <article className={styles.card}><div className={styles.cardTitle}><Timer/><h3>05 · Duração do treino</h3></div><div className={styles.chips}>{[15,30,45,60].map(n=><button className={minutes===n?styles.active:""} key={n} onClick={()=>setMinutes(n)}>{n} min</button>)}</div></article>
       <article className={styles.card}><div className={styles.cardTitle}><Check/><h3>06 · Checklist prática</h3></div><p>{completed}/{tasks.length} etapas concluídas</p><div className={styles.progress}><span style={{width:completed/tasks.length*100+"%"}}/></div></article>
