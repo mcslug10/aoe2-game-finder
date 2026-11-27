@@ -382,7 +382,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
             if item["playerNumber"] == selected.number:
                 raw_events.append(item)
 
-    event_sort = lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1
+    event_sort = lambda item: (item["timeSeconds"] if item["timeSeconds"] is not None else -1, item["playerNumber"] if item["playerNumber"] is not None else -1, item["type"] or "", item["detail"] or "")
     all_events.sort(key=event_sort)
     raw_events.sort(key=event_sort)
     opponent_events = [
