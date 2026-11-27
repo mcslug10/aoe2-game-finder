@@ -488,8 +488,8 @@ export function evaluateAoE2Match(
         ? "considere Spearmen/Pikemen, Monges ou Camelos de acordo com a sua civilização"
         : "ajuste a composição para uma unidade de contra-ataque e proteja seus pontos de coleta";
     tips.push({
-      severity: "high", time: clock(threat.at), title: "Resposta à pressão demorou ou não apareceu",
-      detail: `O adversário começou a enfileirar ${threat.unit} em ${clock(threat.at)}; não foi detectado um contra-ataque rápido no seu histórico de produção.`,
+      severity: "medium", time: clock(threat.at), title: "Revise sua resposta à ameaça registrada",
+      detail: `O replay registra um comando de produção adversário para ${threat.unit} em ${clock(threat.at)}. Não foi localizado um comando de produção classificado como counter depois disso; a fila não confirma que a unidade chegou ao campo, nem que houve combate.`,
       action: `Após identificar essa ameaça no jogo, ${counterSuggestion}.`,
     });
   }
