@@ -383,11 +383,11 @@ export function evaluateAoE2Match(
       const delay = Math.max(0, counterAt - threat.at);
       reactionScore = delay <= 60 ? 15 : delay <= 120 ? 13 : delay <= 180 ? 11 : delay <= 300 ? 8 : delay <= 420 ? 5 : 3;
       reactionSummary = delay <= 60
-        ? "Resposta muito rápida após o primeiro comando militar adversário detectado."
-        : `Primeira resposta identificada ${Math.round(delay)}s depois do primeiro comando militar adversário detectado.`;
+        ? "Um comando de produção ou muralha compatível foi registrado rapidamente após a fila adversária; isso não comprova encontro no campo."
+        : `Um comando de produção ou muralha compatível foi registrado ${Math.round(delay)}s após a fila adversária. O replay não confirma que houve contato ou combate.`;
     } else {
       reactionScore = 1;
-      reactionSummary = "Houve produção militar adversária, mas o replay não mostrou uma unidade de contra-ataque ou muralha nos 7 minutos seguintes.";
+      reactionSummary = "Não foi localizado comando de produção de uma unidade classificada como counter nem muralha nos 7 minutos após a fila adversária. Isso não prova ausência de defesa: os dados podem estar incompletos, a composição pode ser diferente ou a classificação pode não reconhecer a unidade.";
     }
   }
 
@@ -459,9 +459,9 @@ export function evaluateAoE2Match(
   if (villagerGaps.length) {
     const worst = villagerGaps.sort((a, b) => b.gap - a.gap)[0];
     tips.push({
-      severity: "high", time: clock(worst.from), title: "Possível pausa na fila de aldeões",
-      detail: `Depois do tempo estimado da fila, houve um intervalo de aproximadamente ${Math.round(worst.gap)}s sem novo comando de aldeão.`,
-      action: "Confira esse trecho do replay: mantenha o Centro da Cidade produzindo aldeões e evite acumular recursos sem um plano.",
+      severity: "medium", time: clock(worst.from), title: "Possível intervalo entre comandos de aldeão",
+      detail: `O cálculo aproximado da fila sugere um intervalo de ${Math.round(worst.gap)}s até o próximo comando de aldeão. A duração da fila é estimada; isso não comprova que o Town Center ficou parado.`,
+      action: "Revise esse trecho do replay e confirme se o Town Center estava produzindo; compare também seus recursos e a necessidade de unidades militares.",
     });
   }
   if (strategy === "Archer Rush" && !hasTech("fletching")) {
@@ -488,8 +488,8 @@ export function evaluateAoE2Match(
         ? "considere Spearmen/Pikemen, Monges ou Camelos de acordo com a sua civilização"
         : "ajuste a composição para uma unidade de contra-ataque e proteja seus pontos de coleta";
     tips.push({
-      severity: "high", time: clock(threat.at), title: "Resposta à pressão demorou ou não apareceu",
-      detail: `O adversário começou a enfileirar ${threat.unit} em ${clock(threat.at)}; não foi detectado um contra-ataque rápido no seu histórico de produção.`,
+      severity: "medium", time: clock(threat.at), title: "Revise sua resposta à ameaça registrada",
+      detail: `O replay registra um comando de produção adversário para ${threat.unit} em ${clock(threat.at)}. Não foi localizado um comando de produção classificado como counter depois disso; a fila não confirma que a unidade chegou ao campo, nem que houve combate.`,
       action: `Após identificar essa ameaça no jogo, ${counterSuggestion}.`,
     });
   }

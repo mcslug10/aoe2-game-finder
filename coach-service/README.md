@@ -28,5 +28,19 @@ O navegador solicita à aplicação um token de upload assinado, de curta duraç
 ## Limites do MVP
 
 - Arquivos/replays ZIP de até 100 MB.
-- A resposta contém eventos objetivos detectados pelo parser: participantes, mapa, duração, eAPM, comandos de produção/construção/pesquisa e transições de idade quando disponíveis.
-- Recursos exatos e aldeões ociosos exigem reconstruir a simulação com o motor do jogo.
+- A resposta contém eventos objetivos detectados pelo parser: participantes, mapa, duração, APM/eAPM, comandos de produção/construção/pesquisa/ordens, coordenadas disponíveis e transições de idade.
+- O relatório apresenta timeline dos comandos do jogador e eventos de outros participantes, agrupamento aproximado de áreas de ordens e série amostrada de estoque total/contagem de objetos quando o replay fornece esses dados.
+- Coordenadas descrevem ordens registradas; não reconstroem o caminho real de unidades, não confirmam combate, visão do jogador nem execução bem-sucedida.
+- O total de recursos não separa comida, madeira, ouro e pedra nem mede eficiência. A contagem de objetos não deve ser interpretada como composição militar viva sem validar a semântica do parser.
+- Recursos exatos por tipo, aldeões ociosos, trajetórias contínuas e estados de combate podem exigir reconstrução do estado do replay ou integração com dados adicionais.
+
+## Testes
+
+Na pasta `coach-service`, execute:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+O workflow GitHub Actions executa os testes com Python 3.11, além de validar lint e build do frontend.

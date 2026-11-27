@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import io
 import json
+import math
 import os
 import time
 import zipfile
@@ -12,6 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from mgz.summary import Summary
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+PLAYER_TIMELINE_LIMIT = 250
+OPPONENT_TIMELINE_LIMIT = 150
+EVENT_DETAIL_LIMIT = 240
 TOKEN_SECRET = os.environ.get("COACH_SERVICE_TOKEN", "")
 
 app = FastAPI(title="AOE2 Game Finder Coach Parser", version="0.1.0")
@@ -61,9 +65,24 @@ def extract_record(raw: bytes, filename: str) -> bytes:
             candidate = max(candidates, key=lambda info: info.file_size)
             if candidate.file_size > MAX_UPLOAD_BYTES:
                 raise HTTPException(status_code=413, detail="O replay extraído excede 100 MB.")
-            return archive.read(candidate)
+            # Read in bounded chunks: protects against malformed ZIP metadata and
+            # decompression bombs whose actual output exceeds the declared size.
+            chunks: list[bytes] = []
+            total = 0
+            with archive.open(candidate, "r") as source:
+                while True:
+                    chunk = source.read(min(1024 * 1024, MAX_UPLOAD_BYTES + 1 - total))
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_UPLOAD_BYTES:
+                        raise HTTPException(status_code=413, detail="O replay extraído excede 100 MB.")
+                    chunks.append(chunk)
+            return b"".join(chunks)
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Arquivo inválido. Envie um .aoe2record ou ZIP contendo o replay.")
+    except (RuntimeError, OSError, zipfile.LargeZipFile):
+        raise HTTPException(status_code=400, detail="Não foi possível extrair o replay do ZIP. Verifique se o arquivo não está protegido ou corrompido.")
 
 
 def seconds(value: Any) -> float | None:
@@ -79,7 +98,7 @@ def seconds(value: Any) -> float | None:
 
 
 def clock(value: float | None) -> str | None:
-    if value is None:
+    if value is None or not math.isfinite(float(value)):
         return None
     total = max(0, int(value))
     return f"{total // 60:02d}:{total % 60:02d}"
@@ -89,9 +108,13 @@ def safe_str(value: Any) -> str | None:
     if value is None:
         return None
     if isinstance(value, (str, int, float, bool)):
-        return str(value)
-    name = getattr(value, "name", None)
-    return str(name if name is not None else value)
+        text = str(value)
+    else:
+        name = getattr(value, "name", None)
+        text = str(name if name is not None else value)
+    text = text.replace("\\r", " ").replace("\\n", " ").replace("\\t", " ")
+    text = " ".join(text.split())
+    return text[:EVENT_DETAIL_LIMIT]
 
 
 def player_profile_id(player: Any) -> int | None:
@@ -102,18 +125,55 @@ def player_profile_id(player: Any) -> int | None:
         return None
 
 
-def input_data(event: Any, target_number: int) -> dict[str, Any] | None:
+def event_category(kind: str) -> str:
+    """Map normalized replay input names to conservative action categories."""
+    name = " ".join(kind.strip().lower().replace("_", " ").split())
+    if name in {"build", "reseed"}:
+        return "building"
+    if name in {"queue", "de queue", "make"}:
+        return "production"
+    if name == "research":
+        return "research"
+    if name in {"attack move", "attack-move"}:
+        return "attack_move"
+    if name in {"order", "target", "patrol", "follow", "guard", "stop", "garrison", "formation", "stance"}:
+        return "unit_order"
+    if name in {"gather point", "spawn"}:
+        return "rally"
+    if name in {"resign"}:
+        return "match"
+    return "other"
+
+
+def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] | None:
     player = getattr(event, "player", None)
-    if player is None or getattr(player, "number", None) != target_number:
+    if player is None:
+        return None
+    player_number = getattr(player, "number", None)
+    if target_number is not None and player_number != target_number:
         return None
     at = seconds(getattr(event, "timestamp", None))
     kind = safe_str(getattr(event, "type", None)) or "Ação"
     detail = safe_str(getattr(event, "param", None))
+    if detail is not None and detail.lower() in {"nan", "inf", "-inf"}:
+        detail = None
+    payload = getattr(event, "payload", None) or {}
+    position = getattr(event, "position", None)
+    x = getattr(position, "x", None)
+    y = getattr(position, "y", None)
+    object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else None
+    group_key = hashlib.sha256(",".join(str(value) for value in sorted(str(value) for value in object_ids)).encode()).hexdigest()[:12] if isinstance(object_ids, (list, tuple)) and object_ids else None
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
         "time": clock(at),
+        "playerNumber": player_number,
+        "playerName": safe_str(getattr(player, "name", None)),
         "type": kind,
+        "category": event_category(kind),
         "detail": detail,
+        "position": {"x": round(float(x), 2), "y": round(float(y), 2)} if isinstance(x, (int, float)) and isinstance(y, (int, float)) and math.isfinite(float(x)) and math.isfinite(float(y)) else None,
+        "selectedUnitCount": len(object_ids) if isinstance(object_ids, (list, tuple)) else None,
+        "selectionGroupKey": group_key,
     }
 
 
@@ -126,6 +186,89 @@ def age_name(value: Any) -> str:
     if "IMPERIAL" in raw:
         return "Imperial"
     return raw.replace("_", " ").title()
+
+
+def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
+    """Return a bounded sample of the replay's total-stockpile/object-count statistics."""
+    max_points = max(2, int(max_points))
+    rows = getattr(player, "timeseries", []) or []
+    normalized = []
+    for row in rows:
+        at = seconds(getattr(row, "timestamp", None))
+        resources = getattr(row, "total_resources", None)
+        objects = getattr(row, "total_objects", None)
+        if at is None or not isinstance(resources, (int, float)) or not math.isfinite(float(at)) or at < 0 or not math.isfinite(float(resources)) or float(resources) < 0:
+            continue
+        normalized.append({
+            "timeSeconds": round(at, 1),
+            "totalResources": int(resources),
+            "totalObjects": int(objects) if isinstance(objects, (int, float)) and math.isfinite(float(objects)) else None,
+        })
+    if len(normalized) > max_points:
+        # Evenly spaced indices include both endpoints and never exceed max_points.
+        last_index = len(normalized) - 1
+        indexes = sorted({round(index * last_index / (max_points - 1)) for index in range(max_points)})
+        normalized = [normalized[index] for index in indexes]
+    values = [point["totalResources"] for point in normalized]
+    object_values = [point["totalObjects"] for point in normalized if point["totalObjects"] is not None]
+    return {
+        "points": normalized,
+        "sampleCount": len(rows),
+        "resourceStart": values[0] if values else None,
+        "resourceEnd": values[-1] if values else None,
+        "resourcePeak": max(values) if values else None,
+        "resourceDelta": values[-1] - values[0] if len(values) >= 2 else None,
+        "objectsStart": normalized[0]["totalObjects"] if normalized else None,
+        "objectsEnd": normalized[-1]["totalObjects"] if normalized else None,
+        "objectsPeak": max(object_values) if object_values else None,
+        "note": "Soma de recursos registrada pelo parser (não separa comida, madeira, ouro e pedra). A série pode ser amostrada; não mede por si só aldeões ociosos nem eficiência econômica.",
+    }
+
+
+def movement_analysis(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize recorded orders without claiming they represent executed paths."""
+    orders = [event for event in events if event.get("category") in {"attack_move", "unit_order"}]
+    positioned = [event for event in orders if isinstance(event.get("position"), dict)]
+    selected_counts = [
+        event["selectedUnitCount"] for event in orders
+        if isinstance(event.get("selectedUnitCount"), int) and event["selectedUnitCount"] > 0
+    ]
+    # Coarse 8-tile cells are descriptive command clusters, not path reconstruction.
+    cells: dict[tuple[int, int], int] = {}
+    for event in positioned:
+        pos = event["position"]
+        cell = (int(float(pos["x"]) // 8) * 8, int(float(pos["y"]) // 8) * 8)
+        cells[cell] = cells.get(cell, 0) + 1
+    top_areas = [
+        {"x": x, "y": y, "commands": count}
+        for (x, y), count in sorted(cells.items(), key=lambda item: (-item[1], item[0]))[:5]
+    ]
+    by_group: dict[str, list[dict[str, Any]]] = {}
+    for event in positioned:
+        key = event.get("selectionGroupKey")
+        if key:
+            by_group.setdefault(key, []).append(event)
+    target_segments = []
+    for group_events in by_group.values():
+        group_events.sort(key=lambda event: event.get("timeSeconds") if event.get("timeSeconds") is not None else -1)
+        for previous, current in zip(group_events, group_events[1:]):
+            previous_time, current_time = previous.get("timeSeconds"), current.get("timeSeconds")
+            if previous_time is None or current_time is None or current_time < previous_time or current_time - previous_time > 120:
+                continue
+            p1, p2 = previous["position"], current["position"]
+            distance = ((float(p2["x"]) - float(p1["x"])) ** 2 + (float(p2["y"]) - float(p1["y"])) ** 2) ** 0.5
+            target_segments.append(distance)
+    return {
+        "orderCount": len(orders),
+        "attackMoveCount": sum(1 for event in orders if event.get("category") == "attack_move"),
+        "ordersWithCoordinates": len(positioned),
+        "averageSelectedUnits": round(sum(selected_counts) / len(selected_counts), 1) if selected_counts else None,
+        "sameSelectionTargetChanges": len(target_segments),
+        "averageTargetDistance": round(sum(target_segments) / len(target_segments), 1) if target_segments else None,
+        "maxTargetDistance": round(max(target_segments), 1) if target_segments else None,
+        "topCommandAreas": top_areas,
+        "interpretation": "Áreas agrupam coordenadas de ordens registradas em células aproximadas de 8 unidades do mapa. Distância de alvo compara ordens consecutivas do mesmo grupo de seleção em até 120 s; não é distância realmente percorrida, presença contínua ou prova de combate.",
+    }
 
 
 def make_insights(player: dict[str, Any], metrics: dict[str, Any], age_ups: list[dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
@@ -148,6 +291,12 @@ def make_insights(player: dict[str, Any], metrics: dict[str, Any], age_ups: list
         positives.append({
             "title": "Produção militar registrada",
             "detail": f"Foram detectados {metrics['militaryQueueCommands']} comandos de fila de unidades que não foram identificadas como aldeões.",
+        })
+
+    if metrics.get("movementCommands", 0) > 0:
+        positives.append({
+            "title": "Ordens de unidades identificadas",
+            "detail": f"Foram registrados {metrics['movementCommands']} comandos de ordem/posicionamento, incluindo {metrics.get('attackMoveCommands', 0)} Attack Move. {metrics.get('ordersWithMapPosition', 0)} ordens trazem coordenadas no mapa; isso é uma base para reconstruir movimentos, mas ainda não prova a trajetória executada nem o resultado do combate.",
         })
 
     eapm = player.get("eapm")
@@ -234,17 +383,30 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         if row.get("number") == selected.number:
             selected_row = row_data
 
+    all_events = []
     raw_events = []
     for event in getattr(match, "inputs", []):
-        item = input_data(event, selected.number)
+        item = input_data(event)
         if item:
-            raw_events.append(item)
+            all_events.append(item)
+            if item["playerNumber"] == selected.number:
+                raw_events.append(item)
 
-    raw_events.sort(key=lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1)
+    event_sort = lambda item: (item["timeSeconds"] if item["timeSeconds"] is not None else -1, item["playerNumber"] if item["playerNumber"] is not None else -1, item["type"] or "", item["detail"] or "")
+    all_events.sort(key=event_sort)
+    raw_events.sort(key=event_sort)
+    opponent_events = [
+        event for event in all_events
+        if event["playerNumber"] != selected.number
+        and event["category"] in {"building", "production", "research", "attack_move", "unit_order"}
+    ]
     relevant_events = [
         event for event in raw_events
-        if event["type"].lower() in {"build", "queue", "de queue", "research", "resign", "make"}
+        if event["category"] in {"building", "production", "research", "attack_move", "unit_order", "rally", "match"}
     ]
+    order_events = [event for event in relevant_events if event["category"] in {"attack_move", "unit_order"}]
+    positioned_orders = [event for event in order_events if event["position"] is not None]
+    attack_move_events = [event for event in relevant_events if event["category"] == "attack_move"]
 
     age_ups = []
     for uptime in getattr(match, "uptimes", []):
@@ -284,6 +446,10 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "militaryQueueCommands": len(military_events),
         "buildingCommands": len(building_events),
         "researchCommands": len(research_events),
+        "movementCommands": len(order_events),
+        "attackMoveCommands": len(attack_move_events),
+        "ordersWithMapPosition": len(positioned_orders),
+        "ordersWithoutMapPosition": len(order_events) - len(positioned_orders),
     }
 
     selected_report = {
@@ -310,11 +476,23 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "players": player_rows,
         "selectedPlayer": selected_report,
         "metrics": metrics,
+        "movementAnalysis": movement_analysis(relevant_events),
+        "economySeries": economy_series(selected),
+        "opponentTimeline": opponent_events[:OPPONENT_TIMELINE_LIMIT],
         "ageUps": age_ups,
-        "timeline": relevant_events[:100],
+        "timeline": relevant_events[:PLAYER_TIMELINE_LIMIT],
+        "timelineTotal": len(relevant_events),
+        "timelineDisplayed": min(len(relevant_events), PLAYER_TIMELINE_LIMIT),
+        "timelineTruncated": len(relevant_events) > PLAYER_TIMELINE_LIMIT,
+        "timelineLimit": PLAYER_TIMELINE_LIMIT,
+        "opponentTimelineTotal": len(opponent_events),
+        "opponentTimelineDisplayed": min(len(opponent_events), OPPONENT_TIMELINE_LIMIT),
+        "opponentTimelineTruncated": len(opponent_events) > OPPONENT_TIMELINE_LIMIT,
+        "opponentTimelineLimit": OPPONENT_TIMELINE_LIMIT,
         "insights": make_insights(selected_report, metrics, age_ups),
         "limitations": [
             "eAPM mede atividade de comandos, não qualidade de decisão ou multitarefa.",
+            "A timeline é limitada a 250 eventos do jogador e 150 eventos adversários para manter a resposta leve; os totais e indicadores de truncamento informam quando houve corte.",
             "O parser não reconstrói sozinho a curva exata de recursos, aldeões ociosos ou unidades vivas ao longo da partida.",
             "As contagens de fila representam comandos detectados, não necessariamente a quantidade final de unidades produzidas.",
             "A nota global de habilidade só será calculada quando houver comparação com uma build order e um plano de jogo escolhidos.",

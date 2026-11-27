@@ -24,9 +24,14 @@ type Report = {
   fileName: string; parser: string; parserVersion: string; map: string | null; gameType: string | null;
   completed: boolean; rated: boolean | null; durationSeconds: number;
   selectedPlayer: {number:number;name:string;civilization:string|null;winner:boolean|null;eapm:number|null;profileId:number|null;teamId:number|null};
-  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number};
+  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number;attackMoveCommands?:number;ordersWithMapPosition?:number;ordersWithoutMapPosition?:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
-  timeline: Array<{timeSeconds:number|null;time:string|null;type:string;detail:string|null}>;
+  movementAnalysis?: {orderCount:number;attackMoveCount:number;ordersWithCoordinates:number;averageSelectedUnits:number|null;sameSelectionTargetChanges:number;averageTargetDistance:number|null;maxTargetDistance:number|null;topCommandAreas:Array<{x:number;y:number;commands:number}>;interpretation:string};
+  economySeries?: {points:Array<{timeSeconds:number;totalResources:number;totalObjects:number|null}>;sampleCount:number;resourceStart:number|null;resourceEnd:number|null;resourcePeak:number|null;resourceDelta:number|null;objectsStart?:number|null;objectsEnd?:number|null;objectsPeak?:number|null;note:string};
+  opponentTimeline?: Array<{timeSeconds:number|null;time:string|null;playerNumber:number;playerName:string|null;type:string;category:string;detail:string|null;position:{x:number;y:number}|null}>;
+  timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
+  timelineTotal?:number; timelineTruncated?:boolean; timelineLimit?:number;
+  opponentTimelineTotal?:number; opponentTimelineTruncated?:boolean; opponentTimelineLimit?:number;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
   evaluation?: {
@@ -203,6 +208,16 @@ export default function CoachPage() {
       setError(err instanceof Error ? err.message : "Falha ao enviar o replay.");
     } finally { setUploading(false); }
   }
+
+  const economyPoints = report?.economySeries?.points ?? [];
+  const economyValues = economyPoints.map((point) => point.totalResources);
+  const economyMin = economyValues.length ? Math.min(...economyValues) : 0;
+  const economyMax = economyValues.length ? Math.max(...economyValues) : 1;
+  const economyPolyline = economyPoints.map((point,index) => {
+    const x = economyPoints.length < 2 ? 420 : 35 + index / (economyPoints.length - 1) * 770;
+    const y = 165 - ((point.totalResources - economyMin) / Math.max(1, economyMax - economyMin)) * 140;
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
 
   return <main className="shell browser-page coach-page">
     <header className="topbar browser-topbar">
@@ -426,7 +441,30 @@ export default function CoachPage() {
         <div className="coach-metric"><Activity size={19}/><span>APM</span><strong>{report.metrics.apm??"—"}</strong><small>Ações totais/min</small></div>
         <div className="coach-metric"><Users size={19}/><span>Fila de aldeões</span><strong>{report.metrics.villagerQueueCommands}</strong><small>Comandos detectados</small></div>
         <div className="coach-metric"><Swords size={19}/><span>Fila militar</span><strong>{report.metrics.militaryQueueCommands}</strong><small>Comandos detectados</small></div>
+        <div className="coach-metric"><Target size={19}/><span>Ordens de unidades</span><strong>{report.metrics.movementCommands ?? 0}</strong><small>{report.metrics.attackMoveCommands ?? 0} Attack Move · {report.metrics.ordersWithMapPosition ?? 0} com coordenadas</small></div>
       </div>
+      {report.economySeries&&report.economySeries.points.length>1&&<div className="coach-report-block coach-economy-analysis">
+        <h3><Activity size={17}/> Evolução do estoque de recursos</h3>
+        <div className="coach-evidence">
+          <span><b>{report.economySeries.resourceStart??"—"}</b> no primeiro registro</span>
+          <span><b>{report.economySeries.resourceEnd??"—"}</b> no último registro</span>
+          <span><b>{report.economySeries.resourcePeak??"—"}</b> pico observado</span>
+          <span><b>{report.economySeries.resourceDelta===null?"—":(report.economySeries.resourceDelta>0?"+":"")+report.economySeries.resourceDelta}</b> variação no período</span>
+          {report.economySeries.objectsStart!=null&&<span><b>{report.economySeries.objectsStart}</b> objetos no início</span>}
+          {report.economySeries.objectsEnd!=null&&<span><b>{report.economySeries.objectsEnd}</b> objetos no fim</span>}
+          {report.economySeries.objectsPeak!=null&&<span><b>{report.economySeries.objectsPeak}</b> pico de objetos registrados</span>}
+        </div>
+        <div className="coach-rating-chart-wrap">
+          <svg className="coach-rating-svg" viewBox="0 0 840 190" role="img" aria-label="Gráfico do estoque total de recursos ao longo da partida">
+            <line x1="35" y1="25" x2="805" y2="25" className="coach-rating-gridline"/>
+            <line x1="35" y1="95" x2="805" y2="95" className="coach-rating-gridline"/>
+            <line x1="35" y1="165" x2="805" y2="165" className="coach-rating-axis"/>
+            <polyline points={economyPolyline} className="coach-economy-line"/>
+            {economyPoints.map((point,index)=><circle key={index} cx={economyPoints.length<2?420:35+index/(economyPoints.length-1)*770} cy={165-((point.totalResources-economyMin)/Math.max(1,economyMax-economyMin))*140} r="2.5" className="coach-economy-point"><title>{Math.floor(point.timeSeconds/60)}:{String(Math.floor(point.timeSeconds%60)).padStart(2,"0")} · {point.totalResources} recursos somados</title></circle>)}
+          </svg>
+        </div>
+        <p className="coach-footnote">{report.economySeries.note} · {report.economySeries.sampleCount} registros de origem</p>
+      </div>}
       <div className="coach-report-columns">
         <div className="coach-report-block"><h3><CheckCircle2 size={17}/> Pontos positivos observados</h3>
           {report.insights.positives.length?report.insights.positives.map((item,i)=><div className="coach-insight positive" key={i}><b>{item.title}</b><p>{item.detail}</p></div>):<p className="coach-footnote">Ainda não há indicadores positivos suficientes.</p>}
@@ -438,8 +476,34 @@ export default function CoachPage() {
       <div className="coach-report-block coach-age-block"><h3><Clock3 size={17}/> Transições de idade</h3>
         {report.ageUps.length?<div className="coach-age-list">{report.ageUps.map((age,i)=><div className="coach-age-item" key={i}><span>{age.age}</span><b>{age.time??"—"}</b></div>)}</div>:<p className="coach-footnote">Nenhum evento de avanço de idade foi identificado neste replay.</p>}
       </div>
+      {report.movementAnalysis&&<div className="coach-report-block coach-movement-analysis">
+        <h3><Target size={17}/> Leitura das ordens no mapa</h3>
+        <div className="coach-evidence">
+          <span><b>{report.movementAnalysis.orderCount}</b> ordens de unidade</span>
+          <span><b>{report.movementAnalysis.attackMoveCount}</b> Attack Move</span>
+          <span><b>{report.movementAnalysis.ordersWithCoordinates}</b> ordens com coordenadas</span>
+          <span><b>{report.movementAnalysis.averageSelectedUnits??"—"}</b> unidades selecionadas em média</span>
+          <span><b>{report.movementAnalysis.sameSelectionTargetChanges}</b> mudanças de alvo do mesmo grupo</span>
+          <span><b>{report.movementAnalysis.averageTargetDistance??"—"}</b> distância média entre alvos</span>
+        </div>
+        {report.movementAnalysis.topCommandAreas.length>0&&<div className="coach-evidence">
+          <b>Áreas com mais comandos registrados (células aproximadas)</b>
+          {report.movementAnalysis.topCommandAreas.map((area,i)=><span key={i}>• Região X {area.x} / Y {area.y}: {area.commands} comando(s)</span>)}
+        </div>}
+        <p className="coach-footnote">{report.movementAnalysis.interpretation}</p>
+      </div>}
+      {report.opponentTimeline&&report.opponentTimeline.length>0&&<div className="coach-report-block coach-opponent-timeline">
+        <h3><Users size={17}/> Atividade registrada dos adversários</h3>
+        <p className="coach-footnote">Mostra comandos que aparecem no arquivo de replay dos outros jogadores. Não significa que você tenha visto a ação no jogo nem que a unidade estivesse ao alcance da sua visão.</p>
+        {report.opponentTimelineTruncated&&<p className="coach-footnote">Exibindo {report.opponentTimeline.length} de {report.opponentTimelineTotal} eventos adversários (limite do relatório: {report.opponentTimelineLimit??150}).</p>}
+        <div className="coach-timeline">{report.opponentTimeline.slice(0,45).map((event,i)=><div className="coach-timeline-row" key={i}>
+          <time>{event.time??"—"}</time><b>{event.playerName||("Jogador "+event.playerNumber)}</b>
+          <span>{event.type}{event.detail?" · "+event.detail:""}{event.position?" · ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span>
+        </div>)}</div>
+      </div>}
       <div className="coach-report-block"><h3><BookOpen size={17}/> Linha do tempo — comandos observados</h3>
-        {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,35).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
+        {report.timelineTruncated&&<p className="coach-footnote">Exibindo {report.timeline.length} de {report.timelineTotal} comandos (limite do relatório: {report.timelineLimit??250}). Alguns eventos antigos podem ter sido omitidos para manter o relatório leve.</p>}
+        {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,80).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}{event.selectedUnitCount!=null?" · "+event.selectedUnitCount+" unidade(s)":""}{event.position? " · mapa ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
       </div>
       <div className="coach-limitations"><b>Como interpretar este relatório</b><ul>{report.limitations.map((item,i)=><li key={i}>{item}</li>)}</ul></div>
       <p className="coach-footnote">Esta é uma avaliação técnica inicial baseada nos eventos encontrados no arquivo. Ainda não é uma nota global de habilidade nem uma comparação automática com uma build order específica.</p>
