@@ -150,6 +150,12 @@ def make_insights(player: dict[str, Any], metrics: dict[str, Any], age_ups: list
             "detail": f"Foram detectados {metrics['militaryQueueCommands']} comandos de fila de unidades que não foram identificadas como aldeões.",
         })
 
+    if metrics.get("movementCommands", 0) > 0:
+        positives.append({
+            "title": "Comandos de movimentação encontrados",
+            "detail": f"O replay contém {metrics['movementCommands']} comandos classificados como movimento, ataque ou posicionamento. A linha do tempo permite revisar quando esses comandos ocorreram; o parser ainda não reconstrói a rota nem confirma o resultado tático.",
+        })
+
     eapm = player.get("eapm")
     if isinstance(eapm, (int, float)):
         positives.append({
@@ -241,9 +247,11 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
             raw_events.append(item)
 
     raw_events.sort(key=lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1)
+    movement_types = ("move", "attack", "patrol", "follow", "guard", "stop", "formation", "garrison")
     relevant_events = [
         event for event in raw_events
         if event["type"].lower() in {"build", "queue", "de queue", "research", "resign", "make"}
+        or any(kind in event["type"].lower() for kind in movement_types)
     ]
 
     age_ups = []
@@ -284,6 +292,10 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "militaryQueueCommands": len(military_events),
         "buildingCommands": len(building_events),
         "researchCommands": len(research_events),
+        "movementCommands": sum(
+            1 for event in relevant_events
+            if any(kind in event["type"].lower() for kind in movement_types)
+        ),
     }
 
     selected_report = {
@@ -311,7 +323,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "selectedPlayer": selected_report,
         "metrics": metrics,
         "ageUps": age_ups,
-        "timeline": relevant_events[:100],
+        "timeline": relevant_events[:250],
         "insights": make_insights(selected_report, metrics, age_ups),
         "limitations": [
             "eAPM mede atividade de comandos, não qualidade de decisão ou multitarefa.",
