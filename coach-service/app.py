@@ -137,6 +137,7 @@ def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] |
     x = getattr(position, "x", None)
     y = getattr(position, "y", None)
     object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else []
+    group_key = hashlib.sha256(",".join(str(value) for value in sorted(object_ids)).encode()).hexdigest()[:12] if isinstance(object_ids, (list, tuple)) and object_ids else None
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
         "time": clock(at),
@@ -147,6 +148,7 @@ def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] |
         "detail": detail,
         "position": {"x": round(float(x), 2), "y": round(float(y), 2)} if isinstance(x, (int, float)) and isinstance(y, (int, float)) else None,
         "selectedUnitCount": len(object_ids) if isinstance(object_ids, (list, tuple)) else None,
+        "selectionGroupKey": group_key,
     }
 
 
@@ -216,13 +218,31 @@ def movement_analysis(events: list[dict[str, Any]]) -> dict[str, Any]:
         {"x": x, "y": y, "commands": count}
         for (x, y), count in sorted(cells.items(), key=lambda item: (-item[1], item[0]))[:5]
     ]
+    by_group: dict[str, list[dict[str, Any]]] = {}
+    for event in positioned:
+        key = event.get("selectionGroupKey")
+        if key:
+            by_group.setdefault(key, []).append(event)
+    target_segments = []
+    for group_events in by_group.values():
+        group_events.sort(key=lambda event: event.get("timeSeconds") if event.get("timeSeconds") is not None else -1)
+        for previous, current in zip(group_events, group_events[1:]):
+            previous_time, current_time = previous.get("timeSeconds"), current.get("timeSeconds")
+            if previous_time is None or current_time is None or current_time - previous_time > 120:
+                continue
+            p1, p2 = previous["position"], current["position"]
+            distance = ((float(p2["x"]) - float(p1["x"])) ** 2 + (float(p2["y"]) - float(p1["y"])) ** 2) ** 0.5
+            target_segments.append(distance)
     return {
         "orderCount": len(orders),
         "attackMoveCount": sum(1 for event in orders if event.get("category") == "attack_move"),
         "ordersWithCoordinates": len(positioned),
         "averageSelectedUnits": round(sum(selected_counts) / len(selected_counts), 1) if selected_counts else None,
+        "sameSelectionTargetChanges": len(target_segments),
+        "averageTargetDistance": round(sum(target_segments) / len(target_segments), 1) if target_segments else None,
+        "maxTargetDistance": round(max(target_segments), 1) if target_segments else None,
         "topCommandAreas": top_areas,
-        "interpretation": "Áreas agrupam coordenadas de ordens registradas em células aproximadas de 8 unidades do mapa; não são trajetórias, presença contínua de tropas nem prova de combate.",
+        "interpretation": "Áreas agrupam coordenadas de ordens registradas em células aproximadas de 8 unidades do mapa. Distância de alvo compara ordens consecutivas do mesmo grupo de seleção em até 120 s; não é distância realmente percorrida, presença contínua ou prova de combate.",
     }
 
 
