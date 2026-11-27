@@ -33,8 +33,8 @@ class ReplayEventTests(unittest.TestCase):
 
     def test_movement_summary_counts_coordinates_and_attack_move(self):
         events = [
-            {"category": "attack_move", "position": {"x": 17.0, "y": 25.0}, "selectedUnitCount": 4, "selectionGroupKey": "same"},
-            {"category": "unit_order", "position": {"x": 19.0, "y": 27.0}, "selectedUnitCount": 2, "selectionGroupKey": "same"},
+            {"category": "attack_move", "timeSeconds": 10, "position": {"x": 17.0, "y": 25.0}, "selectedUnitCount": 4, "selectionGroupKey": "same"},
+            {"category": "unit_order", "timeSeconds": 30, "position": {"x": 19.0, "y": 27.0}, "selectedUnitCount": 2, "selectionGroupKey": "same"},
             {"category": "unit_order", "position": None, "selectedUnitCount": 1},
         ]
         result = movement_analysis(events)
