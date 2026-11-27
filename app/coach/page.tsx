@@ -28,6 +28,7 @@ type Report = {
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
   movementAnalysis?: {orderCount:number;attackMoveCount:number;ordersWithCoordinates:number;averageSelectedUnits:number|null;topCommandAreas:Array<{x:number;y:number;commands:number}>;interpretation:string};
   economySeries?: {points:Array<{timeSeconds:number;totalResources:number;totalObjects:number|null}>;sampleCount:number;resourceStart:number|null;resourceEnd:number|null;resourcePeak:number|null;resourceDelta:number|null;note:string};
+  opponentTimeline?: Array<{timeSeconds:number|null;time:string|null;playerNumber:number;playerName:string|null;type:string;category:string;detail:string|null;position:{x:number;y:number}|null}>;
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
@@ -483,6 +484,14 @@ export default function CoachPage() {
           {report.movementAnalysis.topCommandAreas.map((area,i)=><span key={i}>• Região X {area.x} / Y {area.y}: {area.commands} comando(s)</span>)}
         </div>}
         <p className="coach-footnote">{report.movementAnalysis.interpretation}</p>
+      </div>}
+      {report.opponentTimeline&&report.opponentTimeline.length>0&&<div className="coach-report-block coach-opponent-timeline">
+        <h3><Users size={17}/> Atividade registrada dos adversários</h3>
+        <p className="coach-footnote">Mostra comandos que aparecem no arquivo de replay dos outros jogadores. Não significa que você tenha visto a ação no jogo nem que a unidade estivesse ao alcance da sua visão.</p>
+        <div className="coach-timeline">{report.opponentTimeline.slice(0,45).map((event,i)=><div className="coach-timeline-row" key={i}>
+          <time>{event.time??"—"}</time><b>{event.playerName||("Jogador "+event.playerNumber)}</b>
+          <span>{event.type}{event.detail?" · "+event.detail:""}{event.position?" · ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span>
+        </div>)}</div>
       </div>}
       <div className="coach-report-block"><h3><BookOpen size={17}/> Linha do tempo — comandos observados</h3>
         {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,80).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}{event.selectedUnitCount!=null?" · "+event.selectedUnitCount+" unidade(s)":""}{event.position? " · mapa ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
