@@ -107,7 +107,7 @@ def safe_str(value: Any) -> str | None:
     if isinstance(value, (str, int, float, bool)):
         return str(value)
     name = getattr(value, "name", None)
-    return str(name if name is not None else value)
+    text = str(name if name is not None else value)\n    return text[:240]
 
 
 def player_profile_id(player: Any) -> int | None:
