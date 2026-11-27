@@ -156,6 +156,34 @@ def age_name(value: Any) -> str:
     return raw.replace("_", " ").title()
 
 
+def movement_analysis(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize recorded orders without claiming they represent executed paths."""
+    orders = [event for event in events if event.get("category") in {"attack_move", "unit_order"}]
+    positioned = [event for event in orders if isinstance(event.get("position"), dict)]
+    selected_counts = [
+        event["selectedUnitCount"] for event in orders
+        if isinstance(event.get("selectedUnitCount"), int) and event["selectedUnitCount"] > 0
+    ]
+    # Coarse 8-tile cells are descriptive command clusters, not path reconstruction.
+    cells: dict[tuple[int, int], int] = {}
+    for event in positioned:
+        pos = event["position"]
+        cell = (int(float(pos["x"]) // 8) * 8, int(float(pos["y"]) // 8) * 8)
+        cells[cell] = cells.get(cell, 0) + 1
+    top_areas = [
+        {"x": x, "y": y, "commands": count}
+        for (x, y), count in sorted(cells.items(), key=lambda item: (-item[1], item[0]))[:5]
+    ]
+    return {
+        "orderCount": len(orders),
+        "attackMoveCount": sum(1 for event in orders if event.get("category") == "attack_move"),
+        "ordersWithCoordinates": len(positioned),
+        "averageSelectedUnits": round(sum(selected_counts) / len(selected_counts), 1) if selected_counts else None,
+        "topCommandAreas": top_areas,
+        "interpretation": "Áreas agrupam coordenadas de ordens registradas em células aproximadas de 8 unidades do mapa; não são trajetórias, presença contínua de tropas nem prova de combate.",
+    }
+
+
 def make_insights(player: dict[str, Any], metrics: dict[str, Any], age_ups: list[dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
     positives: list[dict[str, str]] = []
     review: list[dict[str, str]] = []
@@ -351,6 +379,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "players": player_rows,
         "selectedPlayer": selected_report,
         "metrics": metrics,
+        "movementAnalysis": movement_analysis(relevant_events),
         "ageUps": age_ups,
         "timeline": relevant_events[:250],
         "insights": make_insights(selected_report, metrics, age_ups),
