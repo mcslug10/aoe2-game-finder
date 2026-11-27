@@ -181,6 +181,7 @@ def age_name(value: Any) -> str:
 
 def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
     """Return a bounded sample of the replay's total-stockpile/object-count statistics."""
+    max_points = max(2, int(max_points))
     rows = getattr(player, "timeseries", []) or []
     normalized = []
     for row in rows:
