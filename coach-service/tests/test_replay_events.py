@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app import event_category, input_data, movement_analysis
+from app import event_category, input_data, movement_analysis, extract_record, economy_series
 
 
 class ReplayEventTests(unittest.TestCase):
