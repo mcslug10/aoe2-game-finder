@@ -2175,3 +2175,7 @@ body:has(.browser-page:not(.coach-page)):before {
 .coach-movement-analysis .coach-evidence,.coach-economy-analysis .coach-evidence{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px}
 .coach-movement-analysis .coach-evidence span,.coach-economy-analysis .coach-evidence span{color:#b9c1ae;font-size:10px}
 .coach-movement-analysis .coach-evidence b,.coach-economy-analysis .coach-evidence b{color:#e6c47b}
+
+.coach-opponent-timeline{margin-top:16px;padding:14px;background:#20251f;border:1px solid #66573c}
+.coach-opponent-timeline h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;color:#e6c47b;font:700 18px 'Barlow Condensed'}
+.coach-opponent-timeline .coach-timeline-row b{color:#d8b36b}
