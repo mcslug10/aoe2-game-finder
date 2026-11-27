@@ -156,6 +156,43 @@ def age_name(value: Any) -> str:
     return raw.replace("_", " ").title()
 
 
+def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
+    """Return a bounded sample of the replay's total-stockpile/object-count statistics."""
+    rows = getattr(player, "timeseries", []) or []
+    normalized = []
+    for row in rows:
+        at = seconds(getattr(row, "timestamp", None))
+        resources = getattr(row, "total_resources", None)
+        objects = getattr(row, "total_objects", None)
+        if at is None or not isinstance(resources, (int, float)):
+            continue
+        normalized.append({
+            "timeSeconds": round(at, 1),
+            "totalResources": int(resources),
+            "totalObjects": int(objects) if isinstance(objects, (int, float)) else None,
+        })
+    if len(normalized) > max_points:
+        stride = max(1, (len(normalized) - 1) // (max_points - 1))
+        normalized = normalized[::stride][:max_points]
+        if rows and normalized and normalized[-1]["timeSeconds"] != seconds(getattr(rows[-1], "timestamp", None)):
+            last = rows[-1]
+            at = seconds(getattr(last, "timestamp", None))
+            resources = getattr(last, "total_resources", None)
+            objects = getattr(last, "total_objects", None)
+            if at is not None and isinstance(resources, (int, float)):
+                normalized.append({"timeSeconds": round(at, 1), "totalResources": int(resources), "totalObjects": int(objects) if isinstance(objects, (int, float)) else None})
+    values = [point["totalResources"] for point in normalized]
+    return {
+        "points": normalized,
+        "sampleCount": len(rows),
+        "resourceStart": values[0] if values else None,
+        "resourceEnd": values[-1] if values else None,
+        "resourcePeak": max(values) if values else None,
+        "resourceDelta": values[-1] - values[0] if len(values) >= 2 else None,
+        "note": "Soma de recursos registrada pelo parser (não separa comida, madeira, ouro e pedra). A série pode ser amostrada; não mede por si só aldeões ociosos nem eficiência econômica.",
+    }
+
+
 def movement_analysis(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Summarize recorded orders without claiming they represent executed paths."""
     orders = [event for event in events if event.get("category") in {"attack_move", "unit_order"}]
@@ -380,6 +417,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "selectedPlayer": selected_report,
         "metrics": metrics,
         "movementAnalysis": movement_analysis(relevant_events),
+        "economySeries": economy_series(selected),
         "ageUps": age_ups,
         "timeline": relevant_events[:250],
         "insights": make_insights(selected_report, metrics, age_ups),
