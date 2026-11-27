@@ -24,9 +24,9 @@ type Report = {
   fileName: string; parser: string; parserVersion: string; map: string | null; gameType: string | null;
   completed: boolean; rated: boolean | null; durationSeconds: number;
   selectedPlayer: {number:number;name:string;civilization:string|null;winner:boolean|null;eapm:number|null;profileId:number|null;teamId:number|null};
-  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number};
+  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number;attackMoveCommands?:number;ordersWithMapPosition?:number;ordersWithoutMapPosition?:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
-  timeline: Array<{timeSeconds:number|null;time:string|null;type:string;detail:string|null}>;
+  timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
   evaluation?: {
@@ -426,7 +426,7 @@ export default function CoachPage() {
         <div className="coach-metric"><Activity size={19}/><span>APM</span><strong>{report.metrics.apm??"—"}</strong><small>Ações totais/min</small></div>
         <div className="coach-metric"><Users size={19}/><span>Fila de aldeões</span><strong>{report.metrics.villagerQueueCommands}</strong><small>Comandos detectados</small></div>
         <div className="coach-metric"><Swords size={19}/><span>Fila militar</span><strong>{report.metrics.militaryQueueCommands}</strong><small>Comandos detectados</small></div>
-        <div className="coach-metric"><Target size={19}/><span>Movimentação</span><strong>{report.metrics.movementCommands ?? 0}</strong><small>Ordens detectadas</small></div>
+        <div className="coach-metric"><Target size={19}/><span>Ordens de unidades</span><strong>{report.metrics.movementCommands ?? 0}</strong><small>{report.metrics.attackMoveCommands ?? 0} Attack Move · {report.metrics.ordersWithMapPosition ?? 0} com coordenadas</small></div>
       </div>
       <div className="coach-report-columns">
         <div className="coach-report-block"><h3><CheckCircle2 size={17}/> Pontos positivos observados</h3>
@@ -440,7 +440,7 @@ export default function CoachPage() {
         {report.ageUps.length?<div className="coach-age-list">{report.ageUps.map((age,i)=><div className="coach-age-item" key={i}><span>{age.age}</span><b>{age.time??"—"}</b></div>)}</div>:<p className="coach-footnote">Nenhum evento de avanço de idade foi identificado neste replay.</p>}
       </div>
       <div className="coach-report-block"><h3><BookOpen size={17}/> Linha do tempo — comandos observados</h3>
-        {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,35).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
+        {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,80).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}{event.selectedUnitCount!=null?" · "+event.selectedUnitCount+" unidade(s)":""}{event.position? " · mapa ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
       </div>
       <div className="coach-limitations"><b>Como interpretar este relatório</b><ul>{report.limitations.map((item,i)=><li key={i}>{item}</li>)}</ul></div>
       <p className="coach-footnote">Esta é uma avaliação técnica inicial baseada nos eventos encontrados no arquivo. Ainda não é uma nota global de habilidade nem uma comparação automática com uma build order específica.</p>
