@@ -243,7 +243,7 @@ def movement_analysis(events: list[dict[str, Any]]) -> dict[str, Any]:
         group_events.sort(key=lambda event: event.get("timeSeconds") if event.get("timeSeconds") is not None else -1)
         for previous, current in zip(group_events, group_events[1:]):
             previous_time, current_time = previous.get("timeSeconds"), current.get("timeSeconds")
-            if previous_time is None or current_time is None or current_time - previous_time > 120:
+            if previous_time is None or current_time is None or current_time < previous_time or current_time - previous_time > 120:
                 continue
             p1, p2 = previous["position"], current["position"]
             distance = ((float(p2["x"]) - float(p1["x"])) ** 2 + (float(p2["y"]) - float(p1["y"])) ** 2) ** 0.5
