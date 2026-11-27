@@ -192,7 +192,7 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
         normalized.append({
             "timeSeconds": round(at, 1),
             "totalResources": int(resources),
-            "totalObjects": int(objects) if isinstance(objects, (int, float)) else None,
+            "totalObjects": int(objects) if isinstance(objects, (int, float)) and math.isfinite(float(objects)) else None,
         })
     if len(normalized) > max_points:
         # Evenly spaced indices include both endpoints and never exceed max_points.
