@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import RatingHistoryChart from "./rating-chart";
+import CoachTrainingPlan from "./training-plan";
 import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
@@ -374,6 +375,7 @@ export default function CoachPage() {
         </div>
       </div>
 
+      <CoachTrainingPlan tips={report.evaluation.tips} strengths={report.evaluation.strengths} player={report.selectedPlayer?.name || "Jogador"} map={report.map || "Mapa não identificado"} score={report.evaluation.overallScore}/>
       <div className="coach-report-block coach-tips-block">
         <h3><BookOpen size={17}/> O que poderia ter sido feito</h3>
         {report.evaluation.tips.map((tip,i)=>(
