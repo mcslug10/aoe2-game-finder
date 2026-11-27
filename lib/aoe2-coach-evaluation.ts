@@ -383,11 +383,11 @@ export function evaluateAoE2Match(
       const delay = Math.max(0, counterAt - threat.at);
       reactionScore = delay <= 60 ? 15 : delay <= 120 ? 13 : delay <= 180 ? 11 : delay <= 300 ? 8 : delay <= 420 ? 5 : 3;
       reactionSummary = delay <= 60
-        ? "Resposta muito rápida após o primeiro comando militar adversário detectado."
-        : `Primeira resposta identificada ${Math.round(delay)}s depois do primeiro comando militar adversário detectado.`;
+        ? "Um comando de produção ou muralha compatível foi registrado rapidamente após a fila adversária; isso não comprova encontro no campo."
+        : `Um comando de produção ou muralha compatível foi registrado ${Math.round(delay)}s após a fila adversária. O replay não confirma que houve contato ou combate.`;
     } else {
       reactionScore = 1;
-      reactionSummary = "O replay não retornou comando de unidade classificada como contra-ataque ou muralha nos 7 minutos seguintes. Isso não prova ausência de resposta: pode haver ações não capturadas, defesa com outra unidade ou erro de classificação.";
+      reactionSummary = "Não foi localizado comando de produção de uma unidade classificada como counter nem muralha nos 7 minutos após a fila adversária. Isso não prova ausência de defesa: os dados podem estar incompletos, a composição pode ser diferente ou a classificação pode não reconhecer a unidade.";
     }
   }
 
