@@ -459,9 +459,9 @@ export function evaluateAoE2Match(
   if (villagerGaps.length) {
     const worst = villagerGaps.sort((a, b) => b.gap - a.gap)[0];
     tips.push({
-      severity: "high", time: clock(worst.from), title: "Possível pausa na fila de aldeões",
-      detail: `Depois do tempo estimado da fila, houve um intervalo de aproximadamente ${Math.round(worst.gap)}s sem novo comando de aldeão.`,
-      action: "Confira esse trecho do replay: mantenha o Centro da Cidade produzindo aldeões e evite acumular recursos sem um plano.",
+      severity: "medium", time: clock(worst.from), title: "Possível intervalo entre comandos de aldeão",
+      detail: `O cálculo aproximado da fila sugere um intervalo de ${Math.round(worst.gap)}s até o próximo comando de aldeão. A duração da fila é estimada; isso não comprova que o Town Center ficou parado.`,
+      action: "Revise esse trecho do replay e confirme se o Town Center estava produzindo; compare também seus recursos e a necessidade de unidades militares.",
     });
   }
   if (strategy === "Archer Rush" && !hasTech("fletching")) {
