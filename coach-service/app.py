@@ -108,9 +108,10 @@ def safe_str(value: Any) -> str | None:
     if value is None:
         return None
     if isinstance(value, (str, int, float, bool)):
-        return str(value)
-    name = getattr(value, "name", None)
-    text = str(name if name is not None else value)
+        text = str(value)
+    else:
+        name = getattr(value, "name", None)
+        text = str(name if name is not None else value)
     text = " ".join(text.split())
     return text[:EVENT_DETAIL_LIMIT]
 
