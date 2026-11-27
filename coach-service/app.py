@@ -122,9 +122,12 @@ def event_category(kind: str) -> str:
     return "other"
 
 
-def input_data(event: Any, target_number: int) -> dict[str, Any] | None:
+def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] | None:
     player = getattr(event, "player", None)
-    if player is None or getattr(player, "number", None) != target_number:
+    if player is None:
+        return None
+    player_number = getattr(player, "number", None)
+    if target_number is not None and player_number != target_number:
         return None
     at = seconds(getattr(event, "timestamp", None))
     kind = safe_str(getattr(event, "type", None)) or "Ação"
@@ -137,6 +140,8 @@ def input_data(event: Any, target_number: int) -> dict[str, Any] | None:
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
         "time": clock(at),
+        "playerNumber": player_number,
+        "playerName": safe_str(getattr(player, "name", None)),
         "type": kind,
         "category": event_category(kind),
         "detail": detail,
@@ -333,13 +338,23 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         if row.get("number") == selected.number:
             selected_row = row_data
 
+    all_events = []
     raw_events = []
     for event in getattr(match, "inputs", []):
-        item = input_data(event, selected.number)
+        item = input_data(event)
         if item:
-            raw_events.append(item)
+            all_events.append(item)
+            if item["playerNumber"] == selected.number:
+                raw_events.append(item)
 
-    raw_events.sort(key=lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1)
+    event_sort = lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1
+    all_events.sort(key=event_sort)
+    raw_events.sort(key=event_sort)
+    opponent_events = [
+        event for event in all_events
+        if event["playerNumber"] != selected.number
+        and event["category"] in {"building", "production", "research", "attack_move", "unit_order"}
+    ]
     relevant_events = [
         event for event in raw_events
         if event["category"] in {"building", "production", "research", "attack_move", "unit_order", "rally", "match"}
@@ -418,6 +433,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "metrics": metrics,
         "movementAnalysis": movement_analysis(relevant_events),
         "economySeries": economy_series(selected),
+        "opponentTimeline": opponent_events[:150],
         "ageUps": age_ups,
         "timeline": relevant_events[:250],
         "insights": make_insights(selected_report, metrics, age_ups),
