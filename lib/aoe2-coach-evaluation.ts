@@ -387,7 +387,7 @@ export function evaluateAoE2Match(
         : `Primeira resposta identificada ${Math.round(delay)}s depois do primeiro comando militar adversário detectado.`;
     } else {
       reactionScore = 1;
-      reactionSummary = "Houve produção militar adversária, mas o replay não mostrou uma unidade de contra-ataque ou muralha nos 7 minutos seguintes.";
+      reactionSummary = "O replay não retornou comando de unidade classificada como contra-ataque ou muralha nos 7 minutos seguintes. Isso não prova ausência de resposta: pode haver ações não capturadas, defesa com outra unidade ou erro de classificação.";
     }
   }
 
