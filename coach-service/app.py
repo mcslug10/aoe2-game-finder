@@ -13,6 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from mgz.summary import Summary
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+PLAYER_TIMELINE_LIMIT = 250
+OPPONENT_TIMELINE_LIMIT = 150
+EVENT_DETAIL_LIMIT = 240
 TOKEN_SECRET = os.environ.get("COACH_SERVICE_TOKEN", "")
 
 app = FastAPI(title="AOE2 Game Finder Coach Parser", version="0.1.0")
@@ -95,7 +98,7 @@ def seconds(value: Any) -> float | None:
 
 
 def clock(value: float | None) -> str | None:
-    if value is None:
+    if value is None or not math.isfinite(float(value)):
         return None
     total = max(0, int(value))
     return f"{total // 60:02d}:{total % 60:02d}"
@@ -108,7 +111,8 @@ def safe_str(value: Any) -> str | None:
         return str(value)
     name = getattr(value, "name", None)
     text = str(name if name is not None else value)
-    return text[:240]
+    text = " ".join(text.split())
+    return text[:EVENT_DETAIL_LIMIT]
 
 
 def player_profile_id(player: Any) -> int | None:
@@ -121,7 +125,7 @@ def player_profile_id(player: Any) -> int | None:
 
 def event_category(kind: str) -> str:
     """Map normalized replay input names to conservative action categories."""
-    name = kind.strip().lower()
+    name = " ".join(kind.strip().lower().replace("_", " ").split())
     if name in {"build", "reseed"}:
         return "building"
     if name in {"queue", "de queue", "make"}:
@@ -191,7 +195,7 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
         at = seconds(getattr(row, "timestamp", None))
         resources = getattr(row, "total_resources", None)
         objects = getattr(row, "total_objects", None)
-        if at is None or not isinstance(resources, (int, float)) or not math.isfinite(float(at)) or not math.isfinite(float(resources)):
+        if at is None or not isinstance(resources, (int, float)) or not math.isfinite(float(at)) or at < 0 or not math.isfinite(float(resources)) or float(resources) < 0:
             continue
         normalized.append({
             "timeSeconds": round(at, 1),
@@ -472,17 +476,17 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "metrics": metrics,
         "movementAnalysis": movement_analysis(relevant_events),
         "economySeries": economy_series(selected),
-        "opponentTimeline": opponent_events[:150],
+        "opponentTimeline": opponent_events[:OPPONENT_TIMELINE_LIMIT],
         "ageUps": age_ups,
-        "timeline": relevant_events[:250],
+        "timeline": relevant_events[:PLAYER_TIMELINE_LIMIT],
         "timelineTotal": len(relevant_events),
-        "timelineDisplayed": min(len(relevant_events), 250),
-        "timelineTruncated": len(relevant_events) > 250,
-        "timelineLimit": 250,
+        "timelineDisplayed": min(len(relevant_events), PLAYER_TIMELINE_LIMIT),
+        "timelineTruncated": len(relevant_events) > PLAYER_TIMELINE_LIMIT,
+        "timelineLimit": PLAYER_TIMELINE_LIMIT,
         "opponentTimelineTotal": len(opponent_events),
-        "opponentTimelineDisplayed": min(len(opponent_events), 150),
-        "opponentTimelineTruncated": len(opponent_events) > 150,
-        "opponentTimelineLimit": 150,
+        "opponentTimelineDisplayed": min(len(opponent_events), OPPONENT_TIMELINE_LIMIT),
+        "opponentTimelineTruncated": len(opponent_events) > OPPONENT_TIMELINE_LIMIT,
+        "opponentTimelineLimit": OPPONENT_TIMELINE_LIMIT,
         "insights": make_insights(selected_report, metrics, age_ups),
         "limitations": [
             "eAPM mede atividade de comandos, não qualidade de decisão ou multitarefa.",
