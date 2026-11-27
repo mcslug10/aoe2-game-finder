@@ -470,7 +470,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "economySeries": economy_series(selected),
         "opponentTimeline": opponent_events[:150],
         "ageUps": age_ups,
-        "timeline": relevant_events[:250],\n        "timelineTotal": len(relevant_events),\n        "timelineTruncated": len(relevant_events) > 250,\n        "opponentTimelineTotal": len(opponent_events),\n        "opponentTimelineTruncated": len(opponent_events) > 150,
+        "timeline": relevant_events[:250],\n        "timelineTotal": len(relevant_events),\n        "timelineDisplayed": min(len(relevant_events), 250),\n        "timelineTruncated": len(relevant_events) > 250,\n        "opponentTimelineTotal": len(opponent_events),\n        "opponentTimelineDisplayed": min(len(opponent_events), 150),\n        "opponentTimelineTruncated": len(opponent_events) > 150,
         "insights": make_insights(selected_report, metrics, age_ups),
         "limitations": [
             "eAPM mede atividade de comandos, não qualidade de decisão ou multitarefa.",\n            "A timeline é limitada a 250 eventos do jogador e 150 eventos adversários para manter a resposta leve; os totais e indicadores de truncamento informam quando houve corte.",
