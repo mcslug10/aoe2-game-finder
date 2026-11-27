@@ -470,7 +470,7 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "economySeries": economy_series(selected),
         "opponentTimeline": opponent_events[:150],
         "ageUps": age_ups,
-        "timeline": relevant_events[:250],
+        "timeline": relevant_events[:250],\n        "timelineTotal": len(relevant_events),\n        "timelineTruncated": len(relevant_events) > 250,\n        "opponentTimelineTotal": len(opponent_events),\n        "opponentTimelineTruncated": len(opponent_events) > 150,
         "insights": make_insights(selected_report, metrics, age_ups),
         "limitations": [
             "eAPM mede atividade de comandos, não qualidade de decisão ou multitarefa.",
