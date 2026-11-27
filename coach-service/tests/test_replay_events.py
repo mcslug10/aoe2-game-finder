@@ -33,8 +33,8 @@ class ReplayEventTests(unittest.TestCase):
 
     def test_movement_summary_counts_coordinates_and_attack_move(self):
         events = [
-            {"category": "attack_move", "position": {"x": 17.0, "y": 25.0}, "selectedUnitCount": 4},
-            {"category": "unit_order", "position": {"x": 19.0, "y": 27.0}, "selectedUnitCount": 2},
+            {"category": "attack_move", "position": {"x": 17.0, "y": 25.0}, "selectedUnitCount": 4, "selectionGroupKey": "same"},
+            {"category": "unit_order", "position": {"x": 19.0, "y": 27.0}, "selectedUnitCount": 2, "selectionGroupKey": "same"},
             {"category": "unit_order", "position": None, "selectedUnitCount": 1},
         ]
         result = movement_analysis(events)
@@ -43,6 +43,8 @@ class ReplayEventTests(unittest.TestCase):
         self.assertEqual(result["ordersWithCoordinates"], 2)
         self.assertEqual(result["averageSelectedUnits"], 2.3)
         self.assertEqual(result["topCommandAreas"][0]["commands"], 2)
+        self.assertEqual(result["sameSelectionTargetChanges"], 1)
+        self.assertEqual(result["averageTargetDistance"], 2.8)
 
     def test_unfiltered_event_includes_player_identity_for_opponent_context(self):
         event = SimpleNamespace(
