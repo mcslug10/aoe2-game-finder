@@ -102,6 +102,26 @@ def player_profile_id(player: Any) -> int | None:
         return None
 
 
+def event_category(kind: str) -> str:
+    """Map normalized replay input names to conservative action categories."""
+    name = kind.strip().lower()
+    if name in {"build", "reseed"}:
+        return "building"
+    if name in {"queue", "de queue", "make"}:
+        return "production"
+    if name == "research":
+        return "research"
+    if name in {"attack move", "attack-move"}:
+        return "attack_move"
+    if name in {"order", "target", "patrol", "follow", "guard", "stop", "garrison", "formation", "stance"}:
+        return "unit_order"
+    if name in {"gather point", "spawn"}:
+        return "rally"
+    if name in {"resign"}:
+        return "match"
+    return "other"
+
+
 def input_data(event: Any, target_number: int) -> dict[str, Any] | None:
     player = getattr(event, "player", None)
     if player is None or getattr(player, "number", None) != target_number:
@@ -109,11 +129,19 @@ def input_data(event: Any, target_number: int) -> dict[str, Any] | None:
     at = seconds(getattr(event, "timestamp", None))
     kind = safe_str(getattr(event, "type", None)) or "Ação"
     detail = safe_str(getattr(event, "param", None))
+    payload = getattr(event, "payload", None) or {}
+    position = getattr(event, "position", None)
+    x = getattr(position, "x", None)
+    y = getattr(position, "y", None)
+    object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else []
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
         "time": clock(at),
         "type": kind,
+        "category": event_category(kind),
         "detail": detail,
+        "position": {"x": round(float(x), 2), "y": round(float(y), 2)} if isinstance(x, (int, float)) and isinstance(y, (int, float)) else None,
+        "selectedUnitCount": len(object_ids) if isinstance(object_ids, (list, tuple)) else None,
     }
 
 
@@ -152,8 +180,8 @@ def make_insights(player: dict[str, Any], metrics: dict[str, Any], age_ups: list
 
     if metrics.get("movementCommands", 0) > 0:
         positives.append({
-            "title": "Comandos de movimentação encontrados",
-            "detail": f"O replay contém {metrics['movementCommands']} comandos classificados como movimento, ataque ou posicionamento. A linha do tempo permite revisar quando esses comandos ocorreram; o parser ainda não reconstrói a rota nem confirma o resultado tático.",
+            "title": "Ordens de unidades identificadas",
+            "detail": f"Foram registrados {metrics['movementCommands']} comandos de ordem/posicionamento, incluindo {metrics.get('attackMoveCommands', 0)} Attack Move. {metrics.get('ordersWithMapPosition', 0)} ordens trazem coordenadas no mapa; isso é uma base para reconstruir movimentos, mas ainda não prova a trajetória executada nem o resultado do combate.",
         })
 
     eapm = player.get("eapm")
@@ -247,12 +275,13 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
             raw_events.append(item)
 
     raw_events.sort(key=lambda item: item["timeSeconds"] if item["timeSeconds"] is not None else -1)
-    movement_types = ("move", "attack", "patrol", "follow", "guard", "stop", "formation", "garrison")
     relevant_events = [
         event for event in raw_events
-        if event["type"].lower() in {"build", "queue", "de queue", "research", "resign", "make"}
-        or any(kind in event["type"].lower() for kind in movement_types)
+        if event["category"] in {"building", "production", "research", "attack_move", "unit_order", "rally", "match"}
     ]
+    order_events = [event for event in relevant_events if event["category"] in {"attack_move", "unit_order"}]
+    positioned_orders = [event for event in order_events if event["position"] is not None]
+    attack_move_events = [event for event in relevant_events if event["category"] == "attack_move"]
 
     age_ups = []
     for uptime in getattr(match, "uptimes", []):
@@ -292,10 +321,10 @@ def analyze_record(record: bytes, target_profile_id: int | None, filename: str) 
         "militaryQueueCommands": len(military_events),
         "buildingCommands": len(building_events),
         "researchCommands": len(research_events),
-        "movementCommands": sum(
-            1 for event in relevant_events
-            if any(kind in event["type"].lower() for kind in movement_types)
-        ),
+        "movementCommands": len(order_events),
+        "attackMoveCommands": len(attack_move_events),
+        "ordersWithMapPosition": len(positioned_orders),
+        "ordersWithoutMapPosition": len(order_events) - len(positioned_orders),
     }
 
     selected_report = {
