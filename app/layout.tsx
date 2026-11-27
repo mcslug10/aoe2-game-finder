@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./navigation.css";
 
 export const metadata: Metadata = {
   title: "AOE2 Game Finder — Encontre sua próxima partida",
