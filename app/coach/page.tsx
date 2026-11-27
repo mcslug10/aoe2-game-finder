@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import RatingHistoryChart from "./rating-chart";
 import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
-import { AOE2_BUILD_GUIDES, BUILD_GUIDE_CATEGORIES } from "@/lib/aoe2-build-guides";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
   CheckCircle2, Clock3, FileVideo, Gauge, Medal, Search, Swords, Target, ShieldCheck,
@@ -123,7 +122,6 @@ export default function CoachPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [buildGuideSearch, setBuildGuideSearch] = useState("");
 
   async function searchPlayer() {
     const clean = nickname.trim();
@@ -231,47 +229,6 @@ export default function CoachPage() {
       <h1>Seu treinador de batalha.</h1>
       <p>Encontre suas partidas, analise o replay e descubra o que você executou bem e o que vale treinar na próxima partida.</p>
       <div className="coach-hero-points"><span><Activity size={15}/> eAPM e ações</span><span><Clock3 size={15}/> Tempos de evolução</span><span><BookOpen size={15}/> Build order observada</span></div>
-    </section>
-
-    <section className="panel coach-build-catalog">
-      <div className="coach-section-heading">
-        <div className="coach-icon"><BookOpen size={20}/></div>
-        <div><h2>Estratégias de referência</h2><p>Os 12 guias essenciais do AoE II Companion, com títulos e explicações em português e nomes das unidades mantidos em inglês.</p></div>
-        <span className="coach-count">{AOE2_BUILD_GUIDES.length}</span>
-      </div>
-      <label className="coach-build-search">
-        <Search size={15}/>
-        <input value={buildGuideSearch} onChange={(event)=>setBuildGuideSearch(event.target.value)} placeholder="Buscar estratégia, unidade ou modalidade..."/>
-      </label>
-      {BUILD_GUIDE_CATEGORIES.map((category)=>{
-        const guides=AOE2_BUILD_GUIDES.filter((guide)=>guide.category===category&&`${guide.titlePt} ${guide.titleOriginal} ${guide.description} ${guide.steps.map((step)=>step.title+" "+step.description).join(" ")}`.toLowerCase().includes(buildGuideSearch.toLowerCase()));
-        if(!guides.length)return null;
-        const categoryName=guides[0].categoryPt;
-        return <div className="coach-build-category" key={category}>
-          <div className="coach-build-category-heading"><h3>{categoryName}</h3><span>{guides.length} {guides.length===1?"estratégia":"estratégias"}</span></div>
-          <div className="coach-build-grid">
-            {guides.map((guide)=>(
-              <article className="coach-build-card" key={guide.id}>
-                <div className="coach-build-card-title"><div><span className="coach-build-original">{guide.titleOriginal}</span><h4>{guide.titlePt}</h4></div><span className={"coach-build-difficulty "+guide.difficulty.toLowerCase()}>{guide.difficultyPt}</span></div>
-                <p>{guide.description}</p>
-                <details className="coach-build-steps">
-                  <summary>Ver sequência recomendada ({guide.steps.length} marcos)</summary>
-                  <ol>{guide.steps.map((step)=>(
-                    <li key={step.id}>
-                      <div><b>{step.phase}{step.villagerMarker?" · "+step.villagerMarker+" Villagers":""}: {step.title}</b></div>
-                      <p>{step.description}</p>
-                      {!step.check&&<small>Execução econômica detalhada não é verificável diretamente pelo parser de replay.</small>}
-                    </li>
-                  ))}</ol>
-                </details>
-                <a className="coach-build-source" href={guide.sourceUrl} target="_blank" rel="noreferrer">Abrir guia original do AoE II Companion ↗</a>
-              </article>
-            ))}
-          </div>
-        </div>;
-      })}
-      {AOE2_BUILD_GUIDES.every((guide)=>!`${guide.titlePt} ${guide.titleOriginal} ${guide.description} ${guide.steps.map((step)=>step.title+" "+step.description).join(" ")}`.toLowerCase().includes(buildGuideSearch.toLowerCase()))&&<p className="coach-empty">Nenhuma estratégia corresponde à busca.</p>}
-      <p className="coach-footnote">Fonte das categorias e guias: <a href="https://aoecompanion.com/build-guides" target="_blank" rel="noreferrer">AoE II Companion — Build Guides</a>. Os marcos são resumidos para consulta e comparação; as builds podem variar conforme civilização, mapa, patch e adaptação à partida.</p>
     </section>
 
     <section className="panel coach-lookup">
