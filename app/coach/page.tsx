@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import RatingHistoryChart from "./rating-chart";
+import CoachTrainingPlan from "./training-plan";
+import TimelineExplorer from "./timeline-explorer";
+import CoachReportActions from "./report-actions";
+import CoachWarriorHero from "./warrior-hero";
+import CoachLab from "./coach-lab";
 import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
@@ -224,11 +229,16 @@ export default function CoachPage() {
       <span className="coach-header-tag"><Medal size={14}/> AOE2 COACH</span>
     </header>
 
-    <section className="browser-hero panel coach-hero">
-      <div className="eyebrow muted">ANÁLISE TÉCNICA DE REPLAYS · AGE OF EMPIRES II: DE</div>
-      <h1>Seu treinador de batalha.</h1>
-      <p>Encontre suas partidas, analise o replay e descubra o que você executou bem e o que vale treinar na próxima partida.</p>
-      <div className="coach-hero-points"><span><Activity size={15}/> eAPM e ações</span><span><Clock3 size={15}/> Tempos de evolução</span><span><BookOpen size={15}/> Build order observada</span></div>
+    <section className="browser-hero panel coach-hero coach-warrior-hero">
+      <div className="coach-warrior-copy">
+        <div className="eyebrow muted">ANÁLISE TÉCNICA DE REPLAYS · AGE OF EMPIRES II: DE</div>
+        <h1>Seu treinador de batalha.</h1>
+        <p>Transforme cada replay em experiência. Descubra seus pontos fortes, identifique decisões para melhorar e prepare sua próxima vitória.</p>
+        <div className="coach-hero-points"><span><Activity size={15}/> eAPM e ações</span><span><Clock3 size={15}/> Tempos de evolução</span><span><BookOpen size={15}/> Build order observada</span></div>
+        <div className="coach-warrior-status"><span className="coach-warrior-status-dot"/> PRONTO PARA ANALISAR SUA PARTIDA</div>
+      </div>
+      <div className="coach-warrior-art"><CoachWarriorHero/></div>
+      <div className="coach-warrior-glow" aria-hidden="true"/>
     </section>
 
     <section className="panel coach-lookup">
@@ -287,7 +297,7 @@ export default function CoachPage() {
     {notice&&<div className="coach-alert success"><CheckCircle2 size={17}/><span>{notice}</span></div>}
 
     {report&&<section className="panel coach-report">
-      <div className="coach-report-title"><div><div className="eyebrow muted">RELATÓRIO DE DESEMPENHO</div><h2>{report.selectedPlayer?.name||"Jogador analisado"}</h2><p>{report.map||"Mapa não identificado"} · {durationLabel(report.durationSeconds)} · {report.gameType||"Modo não identificado"}</p></div><span className="coach-parser-badge">PARSER {report.parserVersion}</span></div>
+      <div className="coach-report-title"><div><div className="eyebrow muted">RELATÓRIO DE DESEMPENHO</div><h2>{report.selectedPlayer?.name||"Jogador analisado"}</h2><p>{report.map||"Mapa não identificado"} · {durationLabel(report.durationSeconds)} · {report.gameType||"Modo não identificado"}</p></div><div><span className="coach-parser-badge">PARSER {report.parserVersion}</span><CoachReportActions report={report} player={report.selectedPlayer?.name || "replay"}/></div></div>
       {report.evaluation && <>
       <div className="coach-evaluation">
         <div className="coach-score-card">
@@ -374,6 +384,7 @@ export default function CoachPage() {
         </div>
       </div>
 
+      <CoachTrainingPlan tips={report.evaluation.tips} strengths={report.evaluation.strengths} player={report.selectedPlayer?.name || "Jogador"} map={report.map || "Mapa não identificado"} score={report.evaluation.overallScore}/>
       <div className="coach-report-block coach-tips-block">
         <h3><BookOpen size={17}/> O que poderia ter sido feito</h3>
         {report.evaluation.tips.map((tip,i)=>(
@@ -392,6 +403,8 @@ export default function CoachPage() {
         {report.evaluation.strengths.map((item,i)=><span key={i}>• {item}</span>)}
       </div>}
       </>}
+
+      <CoachLab report={report}/>
 
       <div className="coach-metric-grid">
         <div className="coach-metric"><Gauge size={19}/><span>eAPM</span><strong>{report.metrics.eapm??"—"}</strong><small>Ações efetivas/min</small></div>
@@ -453,14 +466,11 @@ export default function CoachPage() {
         <h3><Users size={17}/> Atividade registrada dos adversários</h3>
         <p className="coach-footnote">Mostra comandos que aparecem no arquivo de replay dos outros jogadores. Não significa que você tenha visto a ação no jogo nem que a unidade estivesse ao alcance da sua visão.</p>
         {report.opponentTimelineTruncated&&<p className="coach-footnote">Exibindo {report.opponentTimeline.length} de {report.opponentTimelineTotal} eventos adversários (limite do relatório: {report.opponentTimelineLimit??150}).</p>}
-        <div className="coach-timeline">{report.opponentTimeline.slice(0,45).map((event,i)=><div className="coach-timeline-row" key={i}>
-          <time>{event.time??"—"}</time><b>{event.playerName||("Jogador "+event.playerNumber)}</b>
-          <span>{event.type}{event.detail?" · "+event.detail:""}{event.position?" · ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span>
-        </div>)}</div>
+        <TimelineExplorer events={report.opponentTimeline} label="Adversários"/>
       </div>}
       <div className="coach-report-block"><h3><BookOpen size={17}/> Linha do tempo — comandos observados</h3>
         {report.timelineTruncated&&<p className="coach-footnote">Exibindo {report.timeline.length} de {report.timelineTotal} comandos (limite do relatório: {report.timelineLimit??250}). Alguns eventos antigos podem ter sido omitidos para manter o relatório leve.</p>}
-        {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,80).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}{event.selectedUnitCount!=null?" · "+event.selectedUnitCount+" unidade(s)":""}{event.position? " · mapa ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
+        {report.timeline.length?<TimelineExplorer events={report.timeline}/>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
       </div>
       <div className="coach-limitations"><b>Como interpretar este relatório</b><ul>{report.limitations.map((item,i)=><li key={i}>{item}</li>)}</ul></div>
       <p className="coach-footnote">Esta é uma avaliação técnica inicial baseada nos eventos encontrados no arquivo. Ainda não é uma nota global de habilidade nem uma comparação automática com uma build order específica.</p>
