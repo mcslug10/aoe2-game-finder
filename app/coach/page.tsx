@@ -27,6 +27,7 @@ type Report = {
   metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number;attackMoveCommands?:number;ordersWithMapPosition?:number;ordersWithoutMapPosition?:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
   movementAnalysis?: {orderCount:number;attackMoveCount:number;ordersWithCoordinates:number;averageSelectedUnits:number|null;topCommandAreas:Array<{x:number;y:number;commands:number}>;interpretation:string};
+  economySeries?: {points:Array<{timeSeconds:number;totalResources:number;totalObjects:number|null}>;sampleCount:number;resourceStart:number|null;resourceEnd:number|null;resourcePeak:number|null;resourceDelta:number|null;note:string};
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
@@ -204,6 +205,16 @@ export default function CoachPage() {
       setError(err instanceof Error ? err.message : "Falha ao enviar o replay.");
     } finally { setUploading(false); }
   }
+
+  const economyPoints = report?.economySeries?.points ?? [];
+  const economyValues = economyPoints.map((point) => point.totalResources);
+  const economyMin = economyValues.length ? Math.min(...economyValues) : 0;
+  const economyMax = economyValues.length ? Math.max(...economyValues) : 1;
+  const economyPolyline = economyPoints.map((point,index) => {
+    const x = economyPoints.length < 2 ? 420 : 35 + index / (economyPoints.length - 1) * 770;
+    const y = 165 - ((point.totalResources - economyMin) / Math.max(1, economyMax - economyMin)) * 140;
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
 
   return <main className="shell browser-page coach-page">
     <header className="topbar browser-topbar">
@@ -429,6 +440,25 @@ export default function CoachPage() {
         <div className="coach-metric"><Swords size={19}/><span>Fila militar</span><strong>{report.metrics.militaryQueueCommands}</strong><small>Comandos detectados</small></div>
         <div className="coach-metric"><Target size={19}/><span>Ordens de unidades</span><strong>{report.metrics.movementCommands ?? 0}</strong><small>{report.metrics.attackMoveCommands ?? 0} Attack Move · {report.metrics.ordersWithMapPosition ?? 0} com coordenadas</small></div>
       </div>
+      {report.economySeries&&report.economySeries.points.length>1&&<div className="coach-report-block coach-economy-analysis">
+        <h3><Activity size={17}/> Evolução do estoque de recursos</h3>
+        <div className="coach-evidence">
+          <span><b>{report.economySeries.resourceStart??"—"}</b> no primeiro registro</span>
+          <span><b>{report.economySeries.resourceEnd??"—"}</b> no último registro</span>
+          <span><b>{report.economySeries.resourcePeak??"—"}</b> pico observado</span>
+          <span><b>{report.economySeries.resourceDelta===null?"—":(report.economySeries.resourceDelta>0?"+":"")+report.economySeries.resourceDelta}</b> variação no período</span>
+        </div>
+        <div className="coach-rating-chart-wrap">
+          <svg className="coach-rating-svg" viewBox="0 0 840 190" role="img" aria-label="Gráfico do estoque total de recursos ao longo da partida">
+            <line x1="35" y1="25" x2="805" y2="25" className="coach-rating-gridline"/>
+            <line x1="35" y1="95" x2="805" y2="95" className="coach-rating-gridline"/>
+            <line x1="35" y1="165" x2="805" y2="165" className="coach-rating-axis"/>
+            <polyline points={economyPolyline} className="coach-economy-line"/>
+            {economyPoints.map((point,index)=><circle key={index} cx={economyPoints.length<2?420:35+index/(economyPoints.length-1)*770} cy={165-((point.totalResources-economyMin)/Math.max(1,economyMax-economyMin))*140} r="2.5" className="coach-economy-point"><title>{Math.floor(point.timeSeconds/60)}:{String(Math.floor(point.timeSeconds%60)).padStart(2,"0")} · {point.totalResources} recursos somados</title></circle>)}
+          </svg>
+        </div>
+        <p className="coach-footnote">{report.economySeries.note} · {report.economySeries.sampleCount} registros de origem</p>
+      </div>}
       <div className="coach-report-columns">
         <div className="coach-report-block"><h3><CheckCircle2 size={17}/> Pontos positivos observados</h3>
           {report.insights.positives.length?report.insights.positives.map((item,i)=><div className="coach-insight positive" key={i}><b>{item.title}</b><p>{item.detail}</p></div>):<p className="coach-footnote">Ainda não há indicadores positivos suficientes.</p>}
