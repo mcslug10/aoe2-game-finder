@@ -7,6 +7,7 @@ import CoachTrainingPlan from "./training-plan";
 import TimelineExplorer from "./timeline-explorer";
 import CoachReportActions from "./report-actions";
 import CoachWarriorHero from "./warrior-hero";
+import CoachLab from "./coach-lab";
 import type { RatingHistory } from "@/lib/aoe2-coach-ratings";
 import {
   Activity, AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Castle,
@@ -402,6 +403,8 @@ export default function CoachPage() {
         {report.evaluation.strengths.map((item,i)=><span key={i}>• {item}</span>)}
       </div>}
       </>}
+
+      <CoachLab report={report}/>
 
       <div className="coach-metric-grid">
         <div className="coach-metric"><Gauge size={19}/><span>eAPM</span><strong>{report.metrics.eapm??"—"}</strong><small>Ações efetivas/min</small></div>
