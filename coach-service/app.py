@@ -61,9 +61,24 @@ def extract_record(raw: bytes, filename: str) -> bytes:
             candidate = max(candidates, key=lambda info: info.file_size)
             if candidate.file_size > MAX_UPLOAD_BYTES:
                 raise HTTPException(status_code=413, detail="O replay extraído excede 100 MB.")
-            return archive.read(candidate)
+            # Read in bounded chunks: protects against malformed ZIP metadata and
+            # decompression bombs whose actual output exceeds the declared size.
+            chunks: list[bytes] = []
+            total = 0
+            with archive.open(candidate, "r") as source:
+                while True:
+                    chunk = source.read(min(1024 * 1024, MAX_UPLOAD_BYTES + 1 - total))
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_UPLOAD_BYTES:
+                        raise HTTPException(status_code=413, detail="O replay extraído excede 100 MB.")
+                    chunks.append(chunk)
+            return b"".join(chunks)
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Arquivo inválido. Envie um .aoe2record ou ZIP contendo o replay.")
+    except (RuntimeError, OSError, zipfile.LargeZipFile):
+        raise HTTPException(status_code=400, detail="Não foi possível extrair o replay do ZIP. Verifique se o arquivo não está protegido ou corrompido.")
 
 
 def seconds(value: Any) -> float | None:
@@ -137,7 +152,7 @@ def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] |
     x = getattr(position, "x", None)
     y = getattr(position, "y", None)
     object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else []
-    group_key = hashlib.sha256(",".join(str(value) for value in sorted(object_ids)).encode()).hexdigest()[:12] if isinstance(object_ids, (list, tuple)) and object_ids else None
+    group_key = hashlib.sha256(",".join(str(value) for value in sorted(str(value) for value in object_ids)).encode()).hexdigest()[:12] if isinstance(object_ids, (list, tuple)) and object_ids else None
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
         "time": clock(at),
@@ -146,7 +161,7 @@ def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] |
         "type": kind,
         "category": event_category(kind),
         "detail": detail,
-        "position": {"x": round(float(x), 2), "y": round(float(y), 2)} if isinstance(x, (int, float)) and isinstance(y, (int, float)) else None,
+        "position": {"x": round(float(x), 2), "y": round(float(y), 2)} if isinstance(x, (int, float)) and isinstance(y, (int, float)) and math.isfinite(float(x)) and math.isfinite(float(y)) else None,
         "selectedUnitCount": len(object_ids) if isinstance(object_ids, (list, tuple)) else None,
         "selectionGroupKey": group_key,
     }
@@ -179,15 +194,10 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
             "totalObjects": int(objects) if isinstance(objects, (int, float)) else None,
         })
     if len(normalized) > max_points:
-        stride = max(1, (len(normalized) - 1) // (max_points - 1))
-        normalized = normalized[::stride][:max_points]
-        if rows and normalized and normalized[-1]["timeSeconds"] != seconds(getattr(rows[-1], "timestamp", None)):
-            last = rows[-1]
-            at = seconds(getattr(last, "timestamp", None))
-            resources = getattr(last, "total_resources", None)
-            objects = getattr(last, "total_objects", None)
-            if at is not None and isinstance(resources, (int, float)):
-                normalized.append({"timeSeconds": round(at, 1), "totalResources": int(resources), "totalObjects": int(objects) if isinstance(objects, (int, float)) else None})
+        # Evenly spaced indices include both endpoints and never exceed max_points.
+        last_index = len(normalized) - 1
+        indexes = sorted({round(index * last_index / (max_points - 1)) for index in range(max_points)})
+        normalized = [normalized[index] for index in indexes]
     values = [point["totalResources"] for point in normalized]
     return {
         "points": normalized,
