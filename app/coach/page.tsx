@@ -27,7 +27,7 @@ type Report = {
   metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number;attackMoveCommands?:number;ordersWithMapPosition?:number;ordersWithoutMapPosition?:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
   movementAnalysis?: {orderCount:number;attackMoveCount:number;ordersWithCoordinates:number;averageSelectedUnits:number|null;sameSelectionTargetChanges:number;averageTargetDistance:number|null;maxTargetDistance:number|null;topCommandAreas:Array<{x:number;y:number;commands:number}>;interpretation:string};
-  economySeries?: {points:Array<{timeSeconds:number;totalResources:number;totalObjects:number|null}>;sampleCount:number;resourceStart:number|null;resourceEnd:number|null;resourcePeak:number|null;resourceDelta:number|null;note:string};
+  economySeries?: {points:Array<{timeSeconds:number;totalResources:number;totalObjects:number|null}>;sampleCount:number;resourceStart:number|null;resourceEnd:number|null;resourcePeak:number|null;resourceDelta:number|null;objectsStart?:number|null;objectsEnd?:number|null;objectsPeak?:number|null;note:string};
   opponentTimeline?: Array<{timeSeconds:number|null;time:string|null;playerNumber:number;playerName:string|null;type:string;category:string;detail:string|null;position:{x:number;y:number}|null}>;
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
@@ -448,6 +448,9 @@ export default function CoachPage() {
           <span><b>{report.economySeries.resourceEnd??"—"}</b> no último registro</span>
           <span><b>{report.economySeries.resourcePeak??"—"}</b> pico observado</span>
           <span><b>{report.economySeries.resourceDelta===null?"—":(report.economySeries.resourceDelta>0?"+":"")+report.economySeries.resourceDelta}</b> variação no período</span>
+          {report.economySeries.objectsStart!=null&&<span><b>{report.economySeries.objectsStart}</b> objetos no início</span>}
+          {report.economySeries.objectsEnd!=null&&<span><b>{report.economySeries.objectsEnd}</b> objetos no fim</span>}
+          {report.economySeries.objectsPeak!=null&&<span><b>{report.economySeries.objectsPeak}</b> pico de objetos registrados</span>}
         </div>
         <div className="coach-rating-chart-wrap">
           <svg className="coach-rating-svg" viewBox="0 0 840 190" role="img" aria-label="Gráfico do estoque total de recursos ao longo da partida">
