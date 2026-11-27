@@ -44,6 +44,20 @@ class ReplayEventTests(unittest.TestCase):
         self.assertEqual(result["averageSelectedUnits"], 2.3)
         self.assertEqual(result["topCommandAreas"][0]["commands"], 2)
 
+    def test_unfiltered_event_includes_player_identity_for_opponent_context(self):
+        event = SimpleNamespace(
+            player=SimpleNamespace(number=2, name="EnemyPlayer"),
+            timestamp=timedelta(seconds=45),
+            type="Queue",
+            param="Knight",
+            payload={"object_ids": []},
+            position=None,
+        )
+        parsed = input_data(event)
+        self.assertEqual(parsed["playerNumber"], 2)
+        self.assertEqual(parsed["playerName"], "EnemyPlayer")
+        self.assertEqual(parsed["detail"], "Knight")
+
     def test_events_from_other_players_are_excluded(self):
         event = SimpleNamespace(player=SimpleNamespace(number=2))
         self.assertIsNone(input_data(event, 1))
