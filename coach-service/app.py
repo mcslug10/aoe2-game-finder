@@ -199,6 +199,7 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
         indexes = sorted({round(index * last_index / (max_points - 1)) for index in range(max_points)})
         normalized = [normalized[index] for index in indexes]
     values = [point["totalResources"] for point in normalized]
+    object_values = [point["totalObjects"] for point in normalized if point["totalObjects"] is not None]
     return {
         "points": normalized,
         "sampleCount": len(rows),
@@ -206,6 +207,9 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
         "resourceEnd": values[-1] if values else None,
         "resourcePeak": max(values) if values else None,
         "resourceDelta": values[-1] - values[0] if len(values) >= 2 else None,
+        "objectsStart": normalized[0]["totalObjects"] if normalized else None,
+        "objectsEnd": normalized[-1]["totalObjects"] if normalized else None,
+        "objectsPeak": max(object_values) if object_values else None,
         "note": "Soma de recursos registrada pelo parser (não separa comida, madeira, ouro e pedra). A série pode ser amostrada; não mede por si só aldeões ociosos nem eficiência econômica.",
     }
 
