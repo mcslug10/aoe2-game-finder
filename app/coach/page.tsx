@@ -24,7 +24,7 @@ type Report = {
   fileName: string; parser: string; parserVersion: string; map: string | null; gameType: string | null;
   completed: boolean; rated: boolean | null; durationSeconds: number;
   selectedPlayer: {number:number;name:string;civilization:string|null;winner:boolean|null;eapm:number|null;profileId:number|null;teamId:number|null};
-  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number};
+  metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;detail:string|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
@@ -426,6 +426,7 @@ export default function CoachPage() {
         <div className="coach-metric"><Activity size={19}/><span>APM</span><strong>{report.metrics.apm??"—"}</strong><small>Ações totais/min</small></div>
         <div className="coach-metric"><Users size={19}/><span>Fila de aldeões</span><strong>{report.metrics.villagerQueueCommands}</strong><small>Comandos detectados</small></div>
         <div className="coach-metric"><Swords size={19}/><span>Fila militar</span><strong>{report.metrics.militaryQueueCommands}</strong><small>Comandos detectados</small></div>
+        <div className="coach-metric"><Target size={19}/><span>Movimentação</span><strong>{report.metrics.movementCommands ?? 0}</strong><small>Ordens detectadas</small></div>
       </div>
       <div className="coach-report-columns">
         <div className="coach-report-block"><h3><CheckCircle2 size={17}/> Pontos positivos observados</h3>
