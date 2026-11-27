@@ -125,5 +125,73 @@ class ReplayEventTests(unittest.TestCase):
         self.assertEqual(result["points"][0]["timeSeconds"], 0)
         self.assertEqual(result["points"][-1]["timeSeconds"], 4)
 
+
+    def test_clock_rejects_non_finite_time(self):
+        from app import clock
+        self.assertIsNone(clock(float("nan")))
+        self.assertIsNone(clock(float("inf")))
+
+    def test_event_category_normalizes_spacing_and_underscores(self):
+        self.assertEqual(event_category("  ATTACK_MOVE "), "attack_move")
+        self.assertEqual(event_category(" gather_point "), "rally")
+
+    def test_safe_text_collapses_whitespace_and_limits_length(self):
+        from app import safe_str, EVENT_DETAIL_LIMIT
+        self.assertEqual(safe_str("  cavalry\\n  queue "), "cavalry queue")
+        self.assertEqual(len(safe_str("x" * 500)), EVENT_DETAIL_LIMIT)
+
+    def test_event_without_player_is_ignored(self):
+        self.assertIsNone(input_data(SimpleNamespace(player=None)))
+
+    def test_malformed_payload_does_not_crash(self):
+        event = SimpleNamespace(player=SimpleNamespace(number=1), timestamp=timedelta(seconds=2), type="Order", param=None, payload="not a mapping", position=None)
+        parsed = input_data(event, 1)
+        self.assertIsNone(parsed["selectionGroupKey"])
+        self.assertIsNone(parsed["selectedUnitCount"])
+
+    def test_empty_selection_has_no_group_hash(self):
+        event = SimpleNamespace(player=SimpleNamespace(number=1), timestamp=timedelta(seconds=2), type="Order", param=None, payload={"object_ids":[]}, position=None)
+        self.assertIsNone(input_data(event, 1)["selectionGroupKey"])
+
+    def test_negative_resource_sample_is_ignored(self):
+        rows = [SimpleNamespace(timestamp=timedelta(seconds=0), total_resources=-1, total_objects=1), SimpleNamespace(timestamp=timedelta(seconds=1), total_resources=5, total_objects=2)]
+        self.assertEqual(economy_series(SimpleNamespace(timeseries=rows))["points"][0]["totalResources"], 5)
+
+    def test_non_finite_economy_timestamp_is_ignored(self):
+        rows = [SimpleNamespace(timestamp=float("nan"), total_resources=4, total_objects=1), SimpleNamespace(timestamp=timedelta(seconds=2), total_resources=8, total_objects=2)]
+        self.assertEqual(len(economy_series(SimpleNamespace(timeseries=rows))["points"]), 1)
+
+    def test_negative_economy_timestamp_is_ignored(self):
+        rows = [SimpleNamespace(timestamp=timedelta(seconds=-1), total_resources=4, total_objects=1), SimpleNamespace(timestamp=timedelta(seconds=2), total_resources=8, total_objects=2)]
+        self.assertEqual(economy_series(SimpleNamespace(timeseries=rows))["points"][0]["timeSeconds"], 2)
+
+    def test_economy_ignores_infinite_objects(self):
+        rows = [SimpleNamespace(timestamp=timedelta(seconds=0), total_resources=4, total_objects=float("inf"))]
+        self.assertIsNone(economy_series(SimpleNamespace(timeseries=rows))["points"][0]["totalObjects"])
+
+    def test_order_distances_ignore_large_time_gaps(self):
+        events = [{"category":"unit_order","timeSeconds":0,"position":{"x":0,"y":0},"selectionGroupKey":"g"},{"category":"unit_order","timeSeconds":121,"position":{"x":100,"y":100},"selectionGroupKey":"g"}]
+        self.assertEqual(movement_analysis(events)["sameSelectionTargetChanges"], 0)
+
+    def test_order_distances_ignore_missing_timestamps(self):
+        events = [{"category":"unit_order","timeSeconds":None,"position":{"x":0,"y":0},"selectionGroupKey":"g"},{"category":"unit_order","timeSeconds":5,"position":{"x":2,"y":2},"selectionGroupKey":"g"}]
+        self.assertEqual(movement_analysis(events)["sameSelectionTargetChanges"], 0)
+
+    def test_movement_ignores_non_order_categories(self):
+        events = [{"category":"building","timeSeconds":1,"position":{"x":0,"y":0}}]
+        self.assertEqual(movement_analysis(events)["orderCount"], 0)
+
+    def test_event_coordinate_zero_is_preserved(self):
+        event = SimpleNamespace(player=SimpleNamespace(number=1),timestamp=timedelta(seconds=1),type="Order",param=None,payload={},position=SimpleNamespace(x=0,y=0))
+        self.assertEqual(input_data(event,1)["position"],{"x":0.0,"y":0.0})
+
+    def test_limits_are_explicit_positive_constants(self):
+        from app import PLAYER_TIMELINE_LIMIT, OPPONENT_TIMELINE_LIMIT, EVENT_DETAIL_LIMIT
+        self.assertEqual((PLAYER_TIMELINE_LIMIT, OPPONENT_TIMELINE_LIMIT, EVENT_DETAIL_LIMIT),(250,150,240))
+
+    def test_non_numeric_profile_id_returns_none(self):
+        from app import player_profile_id
+        self.assertIsNone(player_profile_id(SimpleNamespace(profile_id="invalid")))
+
 if __name__ == "__main__":
     unittest.main()
