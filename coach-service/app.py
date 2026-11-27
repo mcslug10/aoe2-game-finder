@@ -112,6 +112,7 @@ def safe_str(value: Any) -> str | None:
     else:
         name = getattr(value, "name", None)
         text = str(name if name is not None else value)
+    text = text.replace("\\r", " ").replace("\\n", " ").replace("\\t", " ")
     text = " ".join(text.split())
     return text[:EVENT_DETAIL_LIMIT]
 
@@ -160,7 +161,7 @@ def input_data(event: Any, target_number: int | None = None) -> dict[str, Any] |
     position = getattr(event, "position", None)
     x = getattr(position, "x", None)
     y = getattr(position, "y", None)
-    object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else []
+    object_ids = payload.get("object_ids", []) if isinstance(payload, dict) else None
     group_key = hashlib.sha256(",".join(str(value) for value in sorted(str(value) for value in object_ids)).encode()).hexdigest()[:12] if isinstance(object_ids, (list, tuple)) and object_ids else None
     return {
         "timeSeconds": round(at, 2) if at is not None else None,
