@@ -191,7 +191,7 @@ def economy_series(player: Any, max_points: int = 90) -> dict[str, Any]:
         at = seconds(getattr(row, "timestamp", None))
         resources = getattr(row, "total_resources", None)
         objects = getattr(row, "total_objects", None)
-        if at is None or not isinstance(resources, (int, float)):
+        if at is None or not isinstance(resources, (int, float)) or not math.isfinite(float(at)) or not math.isfinite(float(resources)):
             continue
         normalized.append({
             "timeSeconds": round(at, 1),
