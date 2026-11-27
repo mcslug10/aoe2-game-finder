@@ -65,5 +65,41 @@ class ReplayEventTests(unittest.TestCase):
         self.assertIsNone(input_data(event, 1))
 
 
+    def test_selection_hash_handles_mixed_identifier_types(self):
+        event = SimpleNamespace(player=SimpleNamespace(number=1), timestamp=timedelta(seconds=5), type="Order", param=None, payload={"object_ids": [2, "10", 1]}, position=SimpleNamespace(x=1, y=2))
+        parsed = input_data(event, 1)
+        self.assertEqual(parsed["selectedUnitCount"], 3)
+        self.assertIsInstance(parsed["selectionGroupKey"], str)
+
+    def test_non_finite_map_coordinates_are_not_serialized(self):
+        event = SimpleNamespace(player=SimpleNamespace(number=1), timestamp=timedelta(seconds=1), type="Order", param=None, payload={"object_ids": []}, position=SimpleNamespace(x=float("nan"), y=float("inf")))
+        self.assertIsNone(input_data(event, 1)["position"])
+
+    def test_zip_extracts_record_and_rejects_zip_without_record(self):
+        import io, zipfile
+        from fastapi import HTTPException
+        valid = io.BytesIO()
+        with zipfile.ZipFile(valid, "w") as archive: archive.writestr("game.aoe2record", b"sample")
+        self.assertEqual(extract_record(valid.getvalue(), "game.zip"), b"sample")
+        invalid = io.BytesIO()
+        with zipfile.ZipFile(invalid, "w") as archive: archive.writestr("notes.txt", "no replay")
+        with self.assertRaises(HTTPException): extract_record(invalid.getvalue(), "notes.zip")
+
+    def test_economy_sampling_keeps_endpoints_and_point_limit(self):
+        rows = [SimpleNamespace(timestamp=timedelta(seconds=i), total_resources=i * 10, total_objects=i) for i in range(250)]
+        result = economy_series(SimpleNamespace(timeseries=rows), max_points=30)
+        self.assertLessEqual(len(result["points"]), 30)
+        self.assertEqual(result["points"][0]["timeSeconds"], 0)
+        self.assertEqual(result["points"][-1]["timeSeconds"], 249)
+        self.assertEqual(result["resourceEnd"], 2490)
+
+    def test_extract_rejects_zip_member_over_limit(self):
+        import io, zipfile
+        from fastapi import HTTPException
+        archive_data = io.BytesIO()
+        with zipfile.ZipFile(archive_data, "w") as archive:
+            info = zipfile.ZipInfo("large.aoe2record"); info.file_size = 100 * 1024 * 1024 + 1
+            archive.writestr(info, b"x")
+        with self.assertRaises(HTTPException): extract_record(archive_data.getvalue(), "large.zip")
 if __name__ == "__main__":
     unittest.main()
