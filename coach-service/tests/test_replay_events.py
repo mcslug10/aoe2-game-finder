@@ -94,12 +94,18 @@ class ReplayEventTests(unittest.TestCase):
         self.assertEqual(result["resourceEnd"], 2490)
 
     def test_extract_rejects_zip_member_over_limit(self):
-        import io, zipfile
+        import io, zipfile, app
         from fastapi import HTTPException
         archive_data = io.BytesIO()
         with zipfile.ZipFile(archive_data, "w") as archive:
-            info = zipfile.ZipInfo("large.aoe2record"); info.file_size = 100 * 1024 * 1024 + 1
-            archive.writestr(info, b"x")
-        with self.assertRaises(HTTPException): extract_record(archive_data.getvalue(), "large.zip")
+            archive.writestr("large.aoe2record", b"12345")
+        original_limit = app.MAX_UPLOAD_BYTES
+        app.MAX_UPLOAD_BYTES = 4
+        try:
+            with self.assertRaises(HTTPException):
+                extract_record(archive_data.getvalue(), "large.zip")
+        finally:
+            app.MAX_UPLOAD_BYTES = original_limit
+
 if __name__ == "__main__":
     unittest.main()
