@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app import event_category, input_data
+from app import event_category, input_data, movement_analysis
 
 
 class ReplayEventTests(unittest.TestCase):
@@ -30,6 +30,19 @@ class ReplayEventTests(unittest.TestCase):
         self.assertEqual(parsed["category"], "attack_move")
         self.assertEqual(parsed["position"], {"x": 42.25, "y": 18.5})
         self.assertEqual(parsed["selectedUnitCount"], 3)
+
+    def test_movement_summary_counts_coordinates_and_attack_move(self):
+        events = [
+            {"category": "attack_move", "position": {"x": 17.0, "y": 25.0}, "selectedUnitCount": 4},
+            {"category": "unit_order", "position": {"x": 19.0, "y": 27.0}, "selectedUnitCount": 2},
+            {"category": "unit_order", "position": None, "selectedUnitCount": 1},
+        ]
+        result = movement_analysis(events)
+        self.assertEqual(result["orderCount"], 3)
+        self.assertEqual(result["attackMoveCount"], 1)
+        self.assertEqual(result["ordersWithCoordinates"], 2)
+        self.assertEqual(result["averageSelectedUnits"], 2.3)
+        self.assertEqual(result["topCommandAreas"][0]["commands"], 2)
 
     def test_events_from_other_players_are_excluded(self):
         event = SimpleNamespace(player=SimpleNamespace(number=2))
