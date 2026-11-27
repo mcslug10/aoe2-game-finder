@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/discord/clan-match-monitor", "schedule": "*/10 * * * *" }
+  ]
+}
