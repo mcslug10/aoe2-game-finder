@@ -26,6 +26,7 @@ type Report = {
   selectedPlayer: {number:number;name:string;civilization:string|null;winner:boolean|null;eapm:number|null;profileId:number|null;teamId:number|null};
   metrics: {durationSeconds:number;actionCount:number;apm:number|null;eapm:number|null;villagerQueueCommands:number;militaryQueueCommands:number;buildingCommands:number;researchCommands:number;movementCommands:number;attackMoveCommands?:number;ordersWithMapPosition?:number;ordersWithoutMapPosition?:number};
   ageUps: Array<{age:string;timeSeconds:number|null;time:string|null}>;
+  movementAnalysis?: {orderCount:number;attackMoveCount:number;ordersWithCoordinates:number;averageSelectedUnits:number|null;topCommandAreas:Array<{x:number;y:number;commands:number}>;interpretation:string};
   timeline: Array<{timeSeconds:number|null;time:string|null;type:string;category?:string;detail:string|null;position?:{x:number;y:number}|null;selectedUnitCount?:number|null}>;
   insights: {positives:Array<{title:string;detail:string}>;review:Array<{title:string;detail:string}>};
   limitations: string[];
@@ -439,6 +440,20 @@ export default function CoachPage() {
       <div className="coach-report-block coach-age-block"><h3><Clock3 size={17}/> Transições de idade</h3>
         {report.ageUps.length?<div className="coach-age-list">{report.ageUps.map((age,i)=><div className="coach-age-item" key={i}><span>{age.age}</span><b>{age.time??"—"}</b></div>)}</div>:<p className="coach-footnote">Nenhum evento de avanço de idade foi identificado neste replay.</p>}
       </div>
+      {report.movementAnalysis&&<div className="coach-report-block coach-movement-analysis">
+        <h3><Target size={17}/> Leitura das ordens no mapa</h3>
+        <div className="coach-evidence">
+          <span><b>{report.movementAnalysis.orderCount}</b> ordens de unidade</span>
+          <span><b>{report.movementAnalysis.attackMoveCount}</b> Attack Move</span>
+          <span><b>{report.movementAnalysis.ordersWithCoordinates}</b> ordens com coordenadas</span>
+          <span><b>{report.movementAnalysis.averageSelectedUnits??"—"}</b> unidades selecionadas em média</span>
+        </div>
+        {report.movementAnalysis.topCommandAreas.length>0&&<div className="coach-evidence">
+          <b>Áreas com mais comandos registrados (células aproximadas)</b>
+          {report.movementAnalysis.topCommandAreas.map((area,i)=><span key={i}>• Região X {area.x} / Y {area.y}: {area.commands} comando(s)</span>)}
+        </div>}
+        <p className="coach-footnote">{report.movementAnalysis.interpretation}</p>
+      </div>}
       <div className="coach-report-block"><h3><BookOpen size={17}/> Linha do tempo — comandos observados</h3>
         {report.timeline.length?<div className="coach-timeline">{report.timeline.slice(0,80).map((event,i)=><div className="coach-timeline-row" key={i}><time>{event.time??"—"}</time><b>{event.type}</b><span>{event.detail||"—"}{event.selectedUnitCount!=null?" · "+event.selectedUnitCount+" unidade(s)":""}{event.position? " · mapa ("+event.position.x.toFixed(1)+", "+event.position.y.toFixed(1)+")":""}</span></div>)}</div>:<p className="coach-footnote">O parser não retornou a sequência de comandos para esta versão do replay.</p>}
       </div>
