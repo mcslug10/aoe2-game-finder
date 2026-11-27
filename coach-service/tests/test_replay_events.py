@@ -107,5 +107,23 @@ class ReplayEventTests(unittest.TestCase):
         finally:
             app.MAX_UPLOAD_BYTES = original_limit
 
+
+    def test_economy_skips_non_finite_resource_values(self):
+        rows = [
+            SimpleNamespace(timestamp=timedelta(seconds=0), total_resources=10, total_objects=1),
+            SimpleNamespace(timestamp=timedelta(seconds=1), total_resources=float("nan"), total_objects=float("inf")),
+            SimpleNamespace(timestamp=timedelta(seconds=2), total_resources=30, total_objects=3),
+        ]
+        result = economy_series(SimpleNamespace(timeseries=rows))
+        self.assertEqual([point["totalResources"] for point in result["points"]], [10, 30])
+        self.assertEqual(result["points"][1]["totalObjects"], 3)
+
+    def test_economy_sampling_minimum_point_limit_is_safe(self):
+        rows = [SimpleNamespace(timestamp=timedelta(seconds=i), total_resources=i, total_objects=i) for i in range(5)]
+        result = economy_series(SimpleNamespace(timeseries=rows), max_points=0)
+        self.assertGreaterEqual(len(result["points"]), 2)
+        self.assertEqual(result["points"][0]["timeSeconds"], 0)
+        self.assertEqual(result["points"][-1]["timeSeconds"], 4)
+
 if __name__ == "__main__":
     unittest.main()
