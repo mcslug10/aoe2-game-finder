@@ -41,9 +41,9 @@ export async function GET(req:NextRequest) {
   if(!webhook)return NextResponse.json({error:"Configure DISCORD_AOE2_MATCH_WEBHOOK_URL."},{status:503});
   let db;try{db=getAdminSupabase();}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Supabase não configurado"},{status:503});}
   const scanStartedAt=new Date().toISOString();
-  let state;const stateResult=await db.from("discord_clan_match_feed_state").select("last_successful_scan_at").eq("feed_key",FEED_KEY).maybeSingle();
+  const stateResult=await db.from("discord_clan_match_feed_state").select("last_successful_scan_at").eq("feed_key",FEED_KEY).maybeSingle();
   if(stateResult.error)return NextResponse.json({error:`Feed state: ${stateResult.error.message}`},{status:503});
-  state=stateResult.data;
+  const state=stateResult.data;
   // First activation establishes a baseline and deliberately does not backfill old games.
   if(!state){
     const init=await db.from("discord_clan_match_feed_state").insert({feed_key:FEED_KEY,last_successful_scan_at:scanStartedAt});
